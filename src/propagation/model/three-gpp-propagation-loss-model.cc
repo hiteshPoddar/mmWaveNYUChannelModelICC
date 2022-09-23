@@ -146,6 +146,7 @@ ThreeGppPropagationLossModel::DoCalcRxPower (double txPowerDbm,
       rxPow -= GetShadowing (a, b, cond->GetLosCondition ());
     }
 
+  NS_LOG_DEBUG("Received Power:" << rxPow);
   return rxPow;
 }
 

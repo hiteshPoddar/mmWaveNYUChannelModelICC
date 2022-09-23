@@ -69,6 +69,9 @@ UdpClient::GetTypeId (void)
                    UintegerValue (1024),
                    MakeUintegerAccessor (&UdpClient::m_size),
                    MakeUintegerChecker<uint32_t> (12,65507))
+    .AddTraceSource ("TxWithSeqTsSize", "A new packet is created with SeqTsSizeHeader",
+                     MakeTraceSourceAccessor (&UdpClient::m_txTraceWithSeqTsSize),
+                     "ns3::PacketSink::SeqTsSizeCallback")
   ;
   return tid;
 }
@@ -156,27 +159,6 @@ UdpClient::StartApplication (void)
         }
     }
 
-#ifdef NS3_LOG_ENABLE
-  std::stringstream peerAddressStringStream;
-  if (Ipv4Address::IsMatchingType (m_peerAddress))
-    {
-      peerAddressStringStream << Ipv4Address::ConvertFrom (m_peerAddress);
-    }
-  else if (Ipv6Address::IsMatchingType (m_peerAddress))
-    {
-      peerAddressStringStream << Ipv6Address::ConvertFrom (m_peerAddress);
-    }
-  else if (InetSocketAddress::IsMatchingType (m_peerAddress))
-    {
-      peerAddressStringStream << InetSocketAddress::ConvertFrom (m_peerAddress).GetIpv4 ();
-    }
-  else if (Inet6SocketAddress::IsMatchingType (m_peerAddress))
-    {
-      peerAddressStringStream << Inet6SocketAddress::ConvertFrom (m_peerAddress).GetIpv6 ();
-    }
-  m_peerAddressString = peerAddressStringStream.str();
-#endif // NS3_LOG_ENABLE
-
   m_socket->SetRecvCallback (MakeNullCallback<void, Ptr<Socket> > ());
   m_socket->SetAllowBroadcast (true);
   m_sendEvent = Simulator::Schedule (Seconds (0.0), &UdpClient::Send, this);
@@ -194,29 +176,45 @@ UdpClient::Send (void)
 {
   NS_LOG_FUNCTION (this);
   NS_ASSERT (m_sendEvent.IsExpired ());
-  SeqTsHeader seqTs;
-  seqTs.SetSeq (m_sent);
-  Ptr<Packet> p = Create<Packet> (m_size-(8+4)); // 8+4 : the size of the seqTs header
-  p->AddHeader (seqTs);
 
-  if ((m_socket->Send (p)) >= 0)
+  SeqTsSizeHeader header;
+  Address from, to;
+  m_socket->GetSockName (from);
+  m_socket->GetPeerName (to);
+  header.SetSeq (m_sent);
+  header.SetSize (m_size);
+  NS_ABORT_IF (m_size < header.GetSerializedSize ());
+  Ptr<Packet> packet = Create<Packet> (m_size - header.GetSerializedSize ());
+  // Trace before adding header, for consistency with PacketSink
+  // m_txTraceWithSeqTsSize (packet, from, to, header);
+  packet->AddHeader (header);
+
+  std::stringstream peerAddressStringStream;
+  if (Ipv4Address::IsMatchingType (m_peerAddress))
+    {
+      peerAddressStringStream << Ipv4Address::ConvertFrom (m_peerAddress);
+    }
+  else if (Ipv6Address::IsMatchingType (m_peerAddress))
+    {
+      peerAddressStringStream << Ipv6Address::ConvertFrom (m_peerAddress);
+    }
+
+  if ((m_socket->Send (packet)) >= 0)
     {
       ++m_sent;
-      m_totalTx += p->GetSize ();
-#ifdef NS3_LOG_ENABLE
-    NS_LOG_INFO ("TraceDelay TX " << m_size << " bytes to "
-                                    << m_peerAddressString << " Uid: "
-                                    << p->GetUid () << " Time: "
+      m_totalTx += packet->GetSize ();
+      NS_LOG_INFO ("TraceDelay TX " << m_size << " bytes to "
+                                    << peerAddressStringStream.str () << " Uid: "
+                                    << packet->GetUid () << " Time: "
                                     << (Simulator::Now ()).As (Time::S));
-#endif // NS3_LOG_ENABLE
+      m_txTraceWithSeqTsSize (packet, from, to, header);
+
     }
-#ifdef NS3_LOG_ENABLE
   else
     {
       NS_LOG_INFO ("Error while sending " << m_size << " bytes to "
-                                          << m_peerAddressString);
+                                          << peerAddressStringStream.str ());
     }
-#endif // NS3_LOG_ENABLE
 
   if (m_sent < m_count)
     {

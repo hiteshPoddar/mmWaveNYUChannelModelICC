@@ -38,6 +38,8 @@ def build(bld):
         'helper/waveform-generator-helper.cc',
         'helper/spectrum-analyzer-helper.cc',
         'helper/tv-spectrum-transmitter-helper.cc',
+        'model/nyu-spectrum-propagation-loss-model.cc',
+        'model/nyu-channel-model.cc',
         ]
 
     module_test = bld.create_ns3_module_test_library('spectrum')
@@ -95,6 +97,8 @@ def build(bld):
         'helper/spectrum-analyzer-helper.h',
         'helper/tv-spectrum-transmitter-helper.h',
         'test/spectrum-test.h',
+        'model/nyu-spectrum-propagation-loss-model.h',
+        'model/nyu-channel-model.h',
         ]
 
     if (bld.env['ENABLE_EXAMPLES']):

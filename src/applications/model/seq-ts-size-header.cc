@@ -54,6 +54,7 @@ SeqTsSizeHeader::GetInstanceTypeId (void) const
 void
 SeqTsSizeHeader::SetSize (uint64_t size)
 {
+  NS_LOG_FUNCTION (this);
   m_size = size;
 }
 

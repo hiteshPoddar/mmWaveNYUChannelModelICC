@@ -34,7 +34,7 @@ SeqTsHeader::SeqTsHeader ()
   : m_seq (0),
     m_ts (Simulator::Now ().GetTimeStep ())
 {
-  NS_LOG_FUNCTION (this);
+  NS_LOG_FUNCTION (this << m_seq << m_ts);
 }
 
 void
@@ -42,12 +42,15 @@ SeqTsHeader::SetSeq (uint32_t seq)
 {
   NS_LOG_FUNCTION (this << seq);
   m_seq = seq;
+  NS_LOG_DEBUG("Set Seq number:" << m_seq);
 }
 uint32_t
 SeqTsHeader::GetSeq (void) const
 {
   NS_LOG_FUNCTION (this);
+  NS_LOG_DEBUG("get Seq number:" << m_seq);
   return m_seq;
+  
 }
 
 Time

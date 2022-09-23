@@ -50,7 +50,7 @@ MmWavePhyMacCommon::GetTypeId (void)
                                     NrNumerology3, "NrNumerology3"))
     .AddAttribute ("Bandwidth",
                    "The carrier bandwidth in Hz",
-                   DoubleValue (200e6),
+                   DoubleValue (100e6),
                    MakeDoubleAccessor (&MmWavePhyMacCommon::SetBandwidth),
                    MakeDoubleChecker<double> ())
     .AddAttribute ("CenterFreq",
