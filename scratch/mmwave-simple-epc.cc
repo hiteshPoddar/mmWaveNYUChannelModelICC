@@ -229,9 +229,6 @@ main (int argc, char *argv[])
   bool harqEnabled = false;
   bool rlcAmEnabled = true;
 
-  RngSeedManager::SetSeed(1);
-  RngSeedManager::SetRun(1);
-
   // Command line arguments
   CommandLine cmd;
   cmd.AddValue ("numEnb", "Number of eNBs", numEnb);
