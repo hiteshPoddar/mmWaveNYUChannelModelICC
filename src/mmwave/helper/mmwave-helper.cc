@@ -1519,7 +1519,7 @@ pCtrl->AddCallback (MakeCallback (&LteUePhy::GenerateCtrlCqiReport, phy));
       Ptr<SpectrumPropagationLossModel> splm = m_channel.at (it->first)->GetSpectrumPropagationLossModel ();
       //Ptr<NYUSpectrumPropagationLossModel> nyuSplm = DynamicCast<NYUSpectrumPropagationLossModel> (splm);
       Ptr<ThreeGppSpectrumPropagationLossModel> threeGppSplm = DynamicCast<ThreeGppSpectrumPropagationLossModel> (splm);
-      if (nyuSplm)
+      if (threeGppSplm)
       {
         //nyuSplm->AddDevice (device, antenna);
         threeGppSplm->AddDevice (device, antenna);
