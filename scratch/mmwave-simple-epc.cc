@@ -226,7 +226,7 @@ main (int argc, char *argv[])
   double simTime = 10; // in seconds
   double minDistance = 10.0; // eNB-UE distance in meters
   double maxDistance = 150.0; // eNB-UE distance in meters
-  bool harqEnabled = false;
+  bool harqEnabled = true;
   bool rlcAmEnabled = true;
 
   // Command line arguments
