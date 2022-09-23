@@ -599,7 +599,7 @@ ThreeGppUmiStreetCanyonChannelConditionModel::ComputePlos (Ptr<const MobilityMod
     {
       pLos = 18.0 / distance2D + exp (-distance2D / 36.0) * (1.0 - 18.0 / distance2D);
     }
-  pLos = 0;
+  pLos = 1;
   return pLos;
 }
 
