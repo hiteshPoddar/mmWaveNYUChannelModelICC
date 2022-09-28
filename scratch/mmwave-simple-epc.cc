@@ -245,6 +245,8 @@ main (int argc, char *argv[])
   Config::SetDefault ("ns3::LteRlcUmLowLat::ReportBufferStatusTimer", TimeValue (MicroSeconds (100.0)));
   Config::SetDefault ("ns3::PacketSink::EnableSeqTsSizeHeader", BooleanValue (true));
   Config::SetDefault ("ns3::LteRlcUmLowLat::MaxTxBufferSize", UintegerValue (100 * 1024));
+  Config::SetDefault ("ns3::MmWaveSpectrumPhy::ErrorModelType", TypeIdValue (MmWaveEesmIrT1::GetTypeId ()));
+  Config::SetDefault ("ns3::MmWaveAmc::ErrorModelType", TypeIdValue (MmWaveEesmIrT1::GetTypeId ()));
 
   Ptr<MmWaveHelper> mmwaveHelper = CreateObject<MmWaveHelper> ();
   mmwaveHelper->SetSchedulerType ("ns3::MmWaveFlexTtiMacScheduler");
