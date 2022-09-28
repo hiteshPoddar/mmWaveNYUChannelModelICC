@@ -599,7 +599,6 @@ ThreeGppUmiStreetCanyonChannelConditionModel::ComputePlos (Ptr<const MobilityMod
     {
       pLos = 18.0 / distance2D + exp (-distance2D / 36.0) * (1.0 - 18.0 / distance2D);
     }
-  pLos = 0;
   return pLos;
 }
 
@@ -903,6 +902,7 @@ NYUUMiChannelConditionModel::ComputePlos (Ptr<const MobilityModel> a,
     pLos = pow((22.0 / distance2D)*(1.0 - 22.0 / distance2D) + exp (-distance2D / 100.0),2);
   }
   NS_LOG_DEBUG(" NYU UMI channel Probabilty LOS: "<< pLos);
+  pLos = 1;
   return pLos;
 }
 
