@@ -38,8 +38,10 @@ namespace ns3 {
 
 NS_LOG_COMPONENT_DEFINE ("NYUPropagationLossModel");
 
-static const double M_C = 3.0e8; // propagation velocity in free space
-static const double ref_dist = 1; // in meters
+static const double M_C = 3.0e8; // in m/s
+static const double refdistance = 1; // 1m free space reference distance in meters
+static const double lowerLimitFrequency = 28; // in GHz
+static const double higherLimitFrequency = 140; // in GHz
 
 // ------------------------------------------------------------------------- //
 
@@ -57,23 +59,23 @@ NYUPropagationLossModel::GetTypeId (void)
                                        &NYUPropagationLossModel::GetFrequency),
                    MakeDoubleChecker<double> ())
     .AddAttribute ("FoliageLoss", "The Foilage Loss in dB",
-				   DoubleValue (0.4),
-				   MakeDoubleAccessor (&NYUPropagationLossModel::SetFoliageloss,
-								       &NYUPropagationLossModel::GetFoliageloss),
-				   MakeDoubleChecker<double> ())  
+				          DoubleValue (0.4),
+				          MakeDoubleAccessor (&NYUPropagationLossModel::SetFoliageLoss,
+								  &NYUPropagationLossModel::GetFoliageLoss),
+				          MakeDoubleChecker<double> ())  
     .AddAttribute ("ShadowingEnabled", "Enable/disable shadowing.",
                    BooleanValue (true),
                    MakeBooleanAccessor (&NYUPropagationLossModel::m_shadowingEnabled),
                    MakeBooleanChecker ())
     .AddAttribute ("O2ILosstype", "Outdoor to indoor (O2I) penetration loss type - Low Loss / High Loss.",
-				   StringValue("Low Loss"),
-				   MakeStringAccessor (&NYUPropagationLossModel::SetO2Ilosstype,
-								       &NYUPropagationLossModel::GetO2Ilosstype),
-				   MakeStringChecker())
+				          StringValue("Low Loss"),
+				          MakeStringAccessor (&NYUPropagationLossModel::SetO2ILossType,
+								                      &NYUPropagationLossModel::GetO2ILossType),
+				          MakeStringChecker())
     .AddAttribute ("FoliageLossEnabled", "Enable/disable foilage loss.",
-				   BooleanValue (false),
-				   MakeBooleanAccessor (&NYUPropagationLossModel::m_foilagelossEnabled),
-				   MakeBooleanChecker ()) 
+				          BooleanValue (false),
+				          MakeBooleanAccessor (&NYUPropagationLossModel::m_foilageLossEnabled),
+				          MakeBooleanChecker ()) 
     .AddAttribute ("ChannelConditionModel", "Pointer to the channel condition model.",
                    PointerValue (),
                    MakePointerAccessor (&NYUPropagationLossModel::SetChannelConditionModel,
@@ -137,34 +139,37 @@ NYUPropagationLossModel::GetFrequency () const
 }
 
 void
-NYUPropagationLossModel::SetFoliageloss (double foliageloss)
+NYUPropagationLossModel::SetFoliageLoss (double foliageLoss)
 {
-	NS_LOG_FUNCTION (this);
-	NS_ASSERT_MSG (foliageloss >=0 && foliageloss<= 10, "foilage loss should be between 0 and 10 dB/m but is " << foliageloss);
-	m_foliageloss = foliageloss;
+  NS_LOG_FUNCTION (this);
+  NS_ASSERT_MSG (foliageLoss >= 0 && foliageLoss <= 10,
+                 "foilage loss should be between 0 dB/m and 10 dB/m but is " << foliageLoss);
+  m_foliageLoss = foliageLoss;
 }
 
 double
-NYUPropagationLossModel::GetFoliageloss (void) const
+NYUPropagationLossModel::GetFoliageLoss (void) const
 {
-  	NS_LOG_FUNCTION (this);
-  	return m_foliageloss;
+  NS_LOG_FUNCTION (this);
+  return m_foliageLoss;
 }
 
 void
-NYUPropagationLossModel::SetO2Ilosstype(const std::string &value)
+NYUPropagationLossModel::SetO2ILossType (const std::string &o2iLossType)
 {
-	NS_LOG_FUNCTION (this);
-	NS_ASSERT_MSG (value != "Low Loss" || value != "High Loss", "O2ILossType should be Low Loss or High Loss but is " << value);
-	m_O2Ilosstype = value;
+  NS_LOG_FUNCTION (this);
+  NS_ASSERT_MSG (o2iLossType != "Low Loss" || o2iLossType != "High Loss",
+                 "O2ILossType should be Low Loss or High Loss but is " << o2iLossType);
+  m_o2iLossType = o2iLossType;
 }
 
 std::string
-NYUPropagationLossModel::GetO2Ilosstype () const
+NYUPropagationLossModel::GetO2ILossType () const
 {
-  	NS_LOG_FUNCTION (this);
-  	return m_O2Ilosstype ;
+  NS_LOG_FUNCTION (this);
+  return m_o2iLossType;
 }
+
 
 double
 NYUPropagationLossModel::DoCalcRxPower (double txPowerDbm,
@@ -183,9 +188,6 @@ NYUPropagationLossModel::DoCalcRxPower (double txPowerDbm,
   // compute the 2D distance between a and b
   double distance2d = Calculate2dDistance (a->GetPosition (), b->GetPosition ());
  
-  // compute the 3D distance between a and b
-  double distance3d = CalculateDistance (a->GetPosition (), b->GetPosition ());
- 
   // compute hUT and hBS
   std::pair<double, double> heights = GetUtAndBsHeights (a->GetPosition ().z, b->GetPosition ().z);
   
@@ -193,7 +195,7 @@ NYUPropagationLossModel::DoCalcRxPower (double txPowerDbm,
   NS_LOG_DEBUG("Tx power in Dbm:" << txPowerDbm);
   double PL = 0;
 
-  PL = GetLoss (cond, distance2d, distance3d, heights.first, heights.second);
+  PL = GetLoss (cond, distance2d,heights.second);
   NS_LOG_DEBUG ("Path Loss: " << PL);
 
   if (m_shadowingEnabled)
@@ -203,12 +205,12 @@ NYUPropagationLossModel::DoCalcRxPower (double txPowerDbm,
   }
   if (cond->GetO2iCondition() == ChannelCondition::O2I)
   {
-    PL += GetO2ILoss (m_O2Ilosstype,m_frequency);
+    PL += GetO2IPathLoss (m_o2iLossType, m_frequency);
     NS_LOG_DEBUG ("PL with O2I " << PL);
   }
-  if (m_foilagelossEnabled)
+  if (m_foilageLossEnabled)
   {    
-    PL += GetTotalFoliageLoss(distance2d);
+    PL += GetFoliagePathLoss (distance2d);
     NS_LOG_DEBUG ("PL with Foliage Loss " << PL);
   }
   
@@ -220,34 +222,18 @@ NYUPropagationLossModel::DoCalcRxPower (double txPowerDbm,
 }
 
 double
-NYUPropagationLossModel::RxPower_threshold (double txPowerDbm,
-                                          Ptr<MobilityModel> a,
-                                          Ptr<MobilityModel> b) const
-{
-  // compute Received power threshold (dBm). Dynamic range indicates the maximum possible omnidirectional
-  // path loss in dB which can be measuremed by the 2D T-R distance.
-  
-  // compute the 2D distance between a and b
-  double distance2d = Calculate2dDistance (a->GetPosition (), b->GetPosition ());
-  
-  double rxPow_th = txPowerDbm - dynamic_range(distance2d);
-  NS_LOG_DEBUG ("Rcvd Power threshold: " << rxPow_th);
-  return rxPow_th;
-}
-
-double
-NYUPropagationLossModel::GetLoss (Ptr<ChannelCondition> cond, double distance2d, double distance3d, double hUt, double hBs) const
+NYUPropagationLossModel::GetLoss (Ptr<ChannelCondition> cond, double distance2d, double hBs) const
 {
   NS_LOG_FUNCTION (this);
  
   double loss = 0;
   if (cond->GetLosCondition () == ChannelCondition::LosConditionValue::LOS)
     {
-      loss = GetLossLos (distance2d, distance3d, hUt, hBs);
+      loss = GetLossLos (distance2d, hBs);
     }
   else if (cond->GetLosCondition () == ChannelCondition::LosConditionValue::NLOS)
     {
-      loss = GetLossNlos (distance2d, distance3d, hUt, hBs);
+      loss = GetLossNlos (distance2d, hBs);
     }
   else
     {
@@ -368,54 +354,40 @@ NYUPropagationLossModel::GetVectorDifference (Ptr<MobilityModel> a, Ptr<Mobility
 }
 
 double
-NYUPropagationLossModel::calPar(double ple1, double ple2, double frequency) const
+NYUPropagationLossModel::GetCalibratedParameter (double ple1, double ple2, double frequency) const
 {
-  NS_LOG_FUNCTION(this << ple1 << ple2 << frequency);
-  frequency = frequency/1e9; // freq in GHz
-  double output = 0;
-  if (frequency < 28)
-  {
-    output = ple1;
-  }
-  else if (frequency > 150)
-  {
-    output = ple2;
-  }
-  else
-  {
-    output = frequency * (ple2 - ple1) / (140 - 28) + (5 *ple1 - ple2)/4;
-  }
-  return output;
-}
+  NS_LOG_FUNCTION (this << ple1 << ple2 << frequency);
 
-// Dyamic range of NYU Channel Sounder
-double
-NYUPropagationLossModel::dynamic_range(double distance2D) const
-{
-  // distance is in meters and dynamic_range is in dB
-  double dynamic_range = 0;
-  if (distance2D <= 500)
-  {
-    dynamic_range = 190;
-  }
+  double freqGHz = frequency / 1e9; // freq in GHz
+  double calibrateValue = 0;
+
+  if (freqGHz < lowerLimitFrequency)
+    {
+      calibrateValue = ple1;
+    }
+  else if (freqGHz > higherLimitFrequency)
+    {
+      calibrateValue = ple2;
+    }
   else
-  {
-    dynamic_range = 220;
-  }
-  return dynamic_range;
+    {
+      calibrateValue = freqGHz * (ple2 - ple1) / (higherLimitFrequency - lowerLimitFrequency) +
+                       (5 * ple1 - ple2) / 4;
+    }
+  return calibrateValue;
 }
 
 double
-NYUPropagationLossModel::GetO2ILoss (const std::string &o2ilosstype, double frequency) const
+NYUPropagationLossModel::GetO2IPathLoss (const std::string &o2ilosstype, double frequency) const
 {
   double o2iloss = 0;
   if(o2ilosstype.compare("Low Loss") == 0)
   {
-    o2iloss = 10*log10(5 + 0.03*pow(frequency/1e9,2)) + 4*m_normRandomVariable->GetValue();
+    o2iloss = 10*log10(5 + 0.03*pow(frequency/1e9,2)) + 4 * m_normRandomVariable->GetValue();
   }
   else if (o2ilosstype.compare("High Loss") == 0)
   {
-    o2iloss = 10*log10(10 + 5*pow(frequency/1e9,2)) + 6*m_normRandomVariable->GetValue();
+    o2iloss = 10*log10(10 + 5*pow(frequency/1e9,2)) + 6 * m_normRandomVariable->GetValue();
   }
   else
   {
@@ -425,15 +397,15 @@ NYUPropagationLossModel::GetO2ILoss (const std::string &o2ilosstype, double freq
   return o2iloss;
 }
 
-double 
-NYUPropagationLossModel::GetTotalFoliageLoss (double distance2d) const
+double
+NYUPropagationLossModel::GetFoliagePathLoss (double distance2d) const
 {
-  double TotalFoliageLoss = 0;
-  TotalFoliageLoss = m_foliageloss * m_uniformVar->GetValue(0,distance2d);
-  NS_LOG_DEBUG("Total FoliageLoss: "<< TotalFoliageLoss);
-  return TotalFoliageLoss;
-}
+  NS_LOG_FUNCTION (this << distance2d);
 
+  double foliagePathLoss = 0;
+  foliagePathLoss = m_foliageLoss * m_uniformVar->GetValue (0, distance2d);
+  return foliagePathLoss;
+}
 // ------------------------------------------------------------------------- //
  
 NS_OBJECT_ENSURE_REGISTERED (NYUUMiPropagationLossModel);
@@ -461,18 +433,18 @@ NYUUMiPropagationLossModel::~NYUUMiPropagationLossModel ()
   NS_LOG_FUNCTION (this);
 }
 double
-NYUUMiPropagationLossModel::GetLossLos (double distance2D, double distance3D, double hUt, double hBs) const
+NYUUMiPropagationLossModel::GetLossLos (double distance2D, double hBs) const
 {
   NS_LOG_FUNCTION (this);
 
   double lambda; // wavelength in meters
   double PLref; // Free Space Path Loss (FSPL)
   double PL_LOS = 0; // Path loss without SF (dB)
-  double Ple = calPar(2,2,m_frequency); //Path Loss Exponent UMi LOS
+  double Ple = GetCalibratedParameter(2,2,m_frequency); //Path Loss Exponent UMi LOS
   
   lambda = M_C/(m_frequency);
 
-  PLref = 20*log10(4*M_PI*ref_dist/lambda); 
+  PLref = 20*log10(4 * M_PI * refdistance/lambda); 
 
   PL_LOS = PLref + 10 * Ple * log10 (distance2D);
   
@@ -481,21 +453,21 @@ NYUUMiPropagationLossModel::GetLossLos (double distance2D, double distance3D, do
 }
 
 double
-NYUUMiPropagationLossModel::GetLossNlos (double distance2D, double distance3D, double hUt, double hBs) const
+NYUUMiPropagationLossModel::GetLossNlos (double distance2D, double hBs) const
 {
   NS_LOG_FUNCTION (this);
 
   double lambda; // wavelength in meters
   double PLref; // Free Space Path Loss (FSPL)
   double PL_NLOS = 0; // Path loss without SF (dB)
-  double Ple = calPar(3.2,3.2,m_frequency); //Path Loss Exponent UMi NLOS
+  double Ple = GetCalibratedParameter(3.2,3.2,m_frequency); //Path Loss Exponent UMi NLOS
   
   // once 140 GHz channel model also incorporated we need to perform a calibration to fetch the correct PLE
   // Ple = calpar(val1,val2,m_frequency); 
 
   lambda = M_C/(m_frequency);
 
-  PLref = 20*log10(4*M_PI*ref_dist/lambda); 
+  PLref = 20*log10(4 * M_PI * refdistance/lambda); 
 
   PL_NLOS = PLref + 10 * Ple * log10 (distance2D);
   
@@ -511,11 +483,11 @@ NYUUMiPropagationLossModel::GetShadowingStd (ChannelCondition::LosConditionValue
   double shadowingStd;
   if (cond == ChannelCondition::LosConditionValue::LOS)
     {
-      shadowingStd = calPar(4.0,4.0,m_frequency);
+      shadowingStd = GetCalibratedParameter(4.0,4.0,m_frequency);
     }
   else if (cond == ChannelCondition::LosConditionValue::NLOS)
     {
-      shadowingStd = calPar(7.0,7.0,m_frequency);
+      shadowingStd = GetCalibratedParameter(7.0,7.0,m_frequency);
     }
   else
     {
@@ -540,6 +512,465 @@ NYUUMiPropagationLossModel::GetShadowingCorrelationDistance (ChannelCondition::L
   else if (cond == ChannelCondition::LosConditionValue::NLOS)
     {
       correlationDistance = 13;
+    }
+  else
+    {
+      NS_FATAL_ERROR ("Unknown channel condition");
+    }
+
+  return correlationDistance;
+}
+
+NS_OBJECT_ENSURE_REGISTERED (NYUUmaPropagationLossModel);
+
+TypeId
+NYUUmaPropagationLossModel::GetTypeId (void)
+{
+  static TypeId tid = TypeId ("ns3::NYUUmaPropagationLossModel")
+                          .SetParent<NYUPropagationLossModel> ()
+                          .SetGroupName ("Propagation")
+                          .AddConstructor<NYUUmaPropagationLossModel> ();
+  return tid;
+}
+NYUUmaPropagationLossModel::NYUUmaPropagationLossModel () : NYUPropagationLossModel ()
+{
+  NS_LOG_FUNCTION (this);
+  // set a default channel condition model
+  m_channelConditionModel = CreateObject<NYUUmaChannelConditionModel> ();
+}
+NYUUmaPropagationLossModel::~NYUUmaPropagationLossModel ()
+{
+  NS_LOG_FUNCTION (this);
+}
+double
+NYUUmaPropagationLossModel::GetLossLos (double distance2d, double hBs) const
+{
+  NS_LOG_FUNCTION (this);
+
+  double lambda; // wavelength in meters
+  double freeSpacePathLoss; // Free Space Path Loss (FSPL)
+  double pathLossLos = 0; // Path loss without SF (dB)
+  double ple = GetCalibratedParameter (2, 2, m_frequency); //Path Loss Exponent UMa LOS
+
+  lambda = M_C / (m_frequency);
+
+  freeSpacePathLoss = 20 * log10 (4 * M_PI * refdistance / lambda);
+
+  pathLossLos = freeSpacePathLoss + 10 * ple * log10 (distance2d);
+
+  NS_LOG_DEBUG ("m_frequency: " << m_frequency << " 3d-distance: " << distance2d
+                                << " labmda: " << lambda << " FSPL: " << freeSpacePathLoss
+                                << " pathLossLos: " << pathLossLos);
+  return pathLossLos;
+}
+
+double
+NYUUmaPropagationLossModel::GetLossNlos (double distance2d, double hBs) const
+{
+  NS_LOG_FUNCTION (this);
+
+  double lambda; // wavelength in meters
+  double freeSpacePathLoss; // Free Space Path Loss (FSPL)
+  double pathLossNlos = 0; // Path loss without SF (dB)
+  double ple = GetCalibratedParameter (2.9, 2.9, m_frequency); //Path Loss Exponent UMa NLOS
+
+  lambda = M_C / (m_frequency);
+
+  freeSpacePathLoss = 20 * log10 (4 * M_PI * refdistance / lambda);
+
+  pathLossNlos = freeSpacePathLoss + 10 * ple * log10 (distance2d);
+
+  NS_LOG_DEBUG ("m_frequency: " << m_frequency << " 3d-distance: " << distance2d
+                                << " labmda: " << lambda << " FSPL: " << freeSpacePathLoss
+                                << " pathLossNlos: " << pathLossNlos);
+
+  return pathLossNlos;
+}
+
+double
+NYUUmaPropagationLossModel::GetShadowingStd (ChannelCondition::LosConditionValue cond) const
+{
+  NS_LOG_FUNCTION (this);
+  double shadowingStd;
+  if (cond == ChannelCondition::LosConditionValue::LOS)
+    {
+      shadowingStd = GetCalibratedParameter (4.0, 4.0, m_frequency);
+    }
+  else if (cond == ChannelCondition::LosConditionValue::NLOS)
+    {
+      shadowingStd = GetCalibratedParameter (7.0, 7.0, m_frequency);
+    }
+  else
+    {
+      NS_FATAL_ERROR ("Unknown channel condition");
+    }
+
+  NS_LOG_DEBUG ("shadowingStd " << shadowingStd);
+  return shadowingStd;
+}
+
+double
+NYUUmaPropagationLossModel::GetShadowingCorrelationDistance (
+    ChannelCondition::LosConditionValue cond) const
+{
+  NS_LOG_FUNCTION (this);
+  double correlationDistance;
+
+  // See 3GPP TR 38.901, Table 7.5-6
+  if (cond == ChannelCondition::LosConditionValue::LOS)
+    {
+      correlationDistance = 37;
+    }
+  else if (cond == ChannelCondition::LosConditionValue::NLOS)
+    {
+      correlationDistance = 50;
+    }
+  else
+    {
+      NS_FATAL_ERROR ("Unknown channel condition");
+    }
+
+  return correlationDistance;
+}
+
+// ------------------------------------------------------------------------- //
+
+NS_OBJECT_ENSURE_REGISTERED (NYURmaPropagationLossModel);
+
+TypeId
+NYURmaPropagationLossModel::GetTypeId (void)
+{
+  static TypeId tid = TypeId ("ns3::NYURmaPropagationLossModel")
+                          .SetParent<NYUPropagationLossModel> ()
+                          .SetGroupName ("Propagation")
+                          .AddConstructor<NYURmaPropagationLossModel> ();
+  return tid;
+}
+NYURmaPropagationLossModel::NYURmaPropagationLossModel () : NYUPropagationLossModel ()
+{
+  NS_LOG_FUNCTION (this);
+  // set a default channel condition model
+  m_channelConditionModel = CreateObject<NYURmaChannelConditionModel> ();
+}
+NYURmaPropagationLossModel::~NYURmaPropagationLossModel ()
+{
+  NS_LOG_FUNCTION (this);
+}
+double
+NYURmaPropagationLossModel::GetLossLos (double distance2d, double hBs) const
+{
+  NS_LOG_FUNCTION (this);
+
+  double lambda; // wavelength in meters
+  double freeSpacePathLoss; // Free Space Path Loss (FSPL)
+  double pathLossLos = 0; // Path loss without SF (dB)
+
+  lambda = M_C / (m_frequency);
+
+  freeSpacePathLoss = 20 * log10 (4 * M_PI * refdistance / lambda);
+
+  pathLossLos = freeSpacePathLoss + 23.1 * (1 - 0.03 * ((hBs - 35) / 35)) * log10 (distance2d);
+
+  NS_LOG_DEBUG ("m_frequency: " << m_frequency << " 3d-distance: " << distance2d
+                                << " labmda: " << lambda << " FSPL: " << freeSpacePathLoss
+                                << " pathLossLos: " << pathLossLos);
+  return pathLossLos;
+}
+
+double
+NYURmaPropagationLossModel::GetLossNlos (double distance2d, double hBs) const
+{
+  NS_LOG_FUNCTION (this);
+
+  double lambda; // wavelength in meters
+  double freeSpacePathLoss; // Free Space Path Loss (FSPL)
+  double pathLossNlos = 0; // Path loss without SF (dB)
+
+  lambda = M_C / (m_frequency);
+
+  freeSpacePathLoss = 20 * log10 (4 * M_PI * refdistance / lambda);
+
+  pathLossNlos = freeSpacePathLoss + 30.7 * (1 - 0.049 * ((hBs - 35) / 35)) * log10 (distance2d);
+
+  NS_LOG_DEBUG ("m_frequency: " << m_frequency << " 3d-distance: " << distance2d
+                                << " labmda: " << lambda << " FSPL: " << freeSpacePathLoss
+                                << " pathLossNlos: " << pathLossNlos);
+
+  return pathLossNlos;
+}
+
+double
+NYURmaPropagationLossModel::GetShadowingStd (ChannelCondition::LosConditionValue cond) const
+{
+  NS_LOG_FUNCTION (this);
+  double shadowingStd;
+  if (cond == ChannelCondition::LosConditionValue::LOS)
+    {
+      shadowingStd = GetCalibratedParameter (1.7, 1.7, m_frequency);
+    }
+  else if (cond == ChannelCondition::LosConditionValue::NLOS)
+    {
+      shadowingStd = GetCalibratedParameter (6.7, 6.7, m_frequency);
+    }
+  else
+    {
+      NS_FATAL_ERROR ("Unknown channel condition");
+    }
+
+  NS_LOG_DEBUG ("shadowingStd " << shadowingStd);
+  return shadowingStd;
+}
+
+double
+NYURmaPropagationLossModel::GetShadowingCorrelationDistance (
+    ChannelCondition::LosConditionValue cond) const
+{
+  NS_LOG_FUNCTION (this);
+  double correlationDistance;
+
+  // See 3GPP TR 38.901, Table 7.5-6
+  if (cond == ChannelCondition::LosConditionValue::LOS)
+    {
+      correlationDistance = 37;
+    }
+  else if (cond == ChannelCondition::LosConditionValue::NLOS)
+    {
+      correlationDistance = 120;
+    }
+  else
+    {
+      NS_FATAL_ERROR ("Unknown channel condition");
+    }
+
+  return correlationDistance;
+}
+
+NS_OBJECT_ENSURE_REGISTERED (NYUInHPropagationLossModel);
+
+TypeId
+NYUInHPropagationLossModel::GetTypeId (void)
+{
+  static TypeId tid = TypeId ("ns3::NYUInHPropagationLossModel")
+                          .SetParent<NYUPropagationLossModel> ()
+                          .SetGroupName ("Propagation")
+                          .AddConstructor<NYUInHPropagationLossModel> ();
+  return tid;
+}
+NYUInHPropagationLossModel::NYUInHPropagationLossModel () : NYUPropagationLossModel ()
+{
+  NS_LOG_FUNCTION (this);
+  // set a default channel condition model
+  m_channelConditionModel = CreateObject<NYUInHChannelConditionModel> ();
+}
+NYUInHPropagationLossModel::~NYUInHPropagationLossModel ()
+{
+  NS_LOG_FUNCTION (this);
+}
+double
+NYUInHPropagationLossModel::GetLossLos (double distance2d, double hBs) const
+{
+  NS_LOG_FUNCTION (this);
+
+  double lambda; // wavelength in meters
+  double freeSpacePathLoss; // Free Space Path Loss (FSPL)
+  double pathLossLos = 0; // Path loss without SF (dB)
+  double ple = 0;
+  
+  // Frequency dependent PLE for InH Los
+  if (m_frequency < 28e9)
+    {
+      ple = m_frequency/1e9 * (1.2 - 1.8) / (28 - 1) + (28 * 1.8 - 1.2) / 27;
+    }
+  else
+    {
+      ple = GetCalibratedParameter (1.2, 1.8, m_frequency); //Path Loss Exponent InH LOS
+    }
+
+  lambda = M_C / (m_frequency);
+
+  freeSpacePathLoss = 20 * log10 (4 * M_PI * refdistance / lambda);
+
+  pathLossLos = freeSpacePathLoss + 10 * ple * log10 (distance2d);
+
+  NS_LOG_DEBUG ("m_frequency: " << m_frequency << " 3d-distance: " << distance2d
+                                << " labmda: " << lambda << " FSPL: " << freeSpacePathLoss
+                                << " pathLossLos: " << pathLossLos);
+  return pathLossLos;
+}
+
+double
+NYUInHPropagationLossModel::GetLossNlos (double distance2d, double hBs) const
+{
+  NS_LOG_FUNCTION (this);
+
+  double lambda; // wavelength in meters
+  double freeSpacePathLoss; // Free Space Path Loss (FSPL)
+  double pathLossNlos = 0; // Path loss without SF (dB)
+  double ple = GetCalibratedParameter (2.7, 2.7, m_frequency); //Path Loss Exponent InH NLOS
+
+  lambda = M_C / (m_frequency);
+
+  freeSpacePathLoss = 20 * log10 (4 * M_PI * refdistance / lambda);
+
+  pathLossNlos = freeSpacePathLoss + 10 * ple * log10 (distance2d);
+
+  NS_LOG_DEBUG ("m_frequency: " << m_frequency << " 3d-distance: " << distance2d
+                                << " labmda: " << lambda << " FSPL: " << freeSpacePathLoss
+                                << " pathLossNlos: " << pathLossNlos);
+
+  return pathLossNlos;
+}
+
+double
+NYUInHPropagationLossModel::GetShadowingStd (ChannelCondition::LosConditionValue cond) const
+{
+  NS_LOG_FUNCTION (this);
+  double shadowingStd;
+  if (cond == ChannelCondition::LosConditionValue::LOS)
+    {
+      shadowingStd = GetCalibratedParameter (3, 2.9, m_frequency);
+    }
+  else if (cond == ChannelCondition::LosConditionValue::NLOS)
+    {
+      shadowingStd = GetCalibratedParameter (9.8, 6.6, m_frequency);
+    }
+  else
+    {
+      NS_FATAL_ERROR ("Unknown channel condition");
+    }
+
+  NS_LOG_DEBUG ("shadowingStd " << shadowingStd);
+  return shadowingStd;
+}
+
+double
+NYUInHPropagationLossModel::GetShadowingCorrelationDistance (
+    ChannelCondition::LosConditionValue cond) const
+{
+  NS_LOG_FUNCTION (this);
+  double correlationDistance;
+
+  // See 3GPP TR 38.901, Table 7.5-6
+  if (cond == ChannelCondition::LosConditionValue::LOS)
+    {
+      correlationDistance = 10;
+    }
+  else if (cond == ChannelCondition::LosConditionValue::NLOS)
+    {
+      correlationDistance = 6;
+    }
+  else
+    {
+      NS_FATAL_ERROR ("Unknown channel condition");
+    }
+
+  return correlationDistance;
+}
+
+
+NS_OBJECT_ENSURE_REGISTERED (NYUInFPropagationLossModel);
+
+TypeId
+NYUInFPropagationLossModel::GetTypeId (void)
+{
+  static TypeId tid = TypeId ("ns3::NYUInFPropagationLossModel")
+                          .SetParent<NYUPropagationLossModel> ()
+                          .SetGroupName ("Propagation")
+                          .AddConstructor<NYUInFPropagationLossModel> ();
+  return tid;
+}
+NYUInFPropagationLossModel::NYUInFPropagationLossModel () : NYUPropagationLossModel ()
+{
+  NS_LOG_FUNCTION (this);
+  // set a default channel condition model
+  m_channelConditionModel = CreateObject<NYUInFChannelConditionModel> ();
+}
+NYUInFPropagationLossModel::~NYUInFPropagationLossModel ()
+{
+  NS_LOG_FUNCTION (this);
+}
+double
+NYUInFPropagationLossModel::GetLossLos (double distance2d, double hBs) const
+{
+  NS_LOG_FUNCTION (this);
+
+  double lambda; // wavelength in meters
+  double freeSpacePathLoss; // Free Space Path Loss (FSPL)
+  double pathLossLos = 0; // Path loss without SF (dB)
+  double ple = GetCalibratedParameter (1.7, 1.7, m_frequency); //Path Loss Exponent InF LOS
+
+  lambda = M_C / (m_frequency);
+
+  freeSpacePathLoss = 20 * log10 (4 * M_PI * refdistance / lambda);
+
+  pathLossLos = freeSpacePathLoss + 10 * ple * log10 (distance2d);
+
+  NS_LOG_DEBUG ("m_frequency: " << m_frequency << " 3d-distance: " << distance2d
+                                << " labmda: " << lambda << " FSPL: " << freeSpacePathLoss
+                                << " pathLossLos: " << pathLossLos);
+  return pathLossLos;
+}
+
+double
+NYUInFPropagationLossModel::GetLossNlos (double distance2d, double hBs) const
+{
+  NS_LOG_FUNCTION (this);
+
+  double lambda; // wavelength in meters
+  double freeSpacePathLoss; // Free Space Path Loss (FSPL)
+  double pathLossNlos = 0; // Path loss without SF (dB)
+  double ple = GetCalibratedParameter (3.4, 3.4, m_frequency); //Path Loss Exponent InF NLOS
+
+  lambda = M_C / (m_frequency);
+
+  freeSpacePathLoss = 20 * log10 (4 * M_PI * refdistance / lambda);
+
+  pathLossNlos = freeSpacePathLoss + 10 * ple * log10 (distance2d);
+
+  NS_LOG_DEBUG ("m_frequency: " << m_frequency << " 3d-distance: " << distance2d
+                                << " labmda: " << lambda << " FSPL: " << freeSpacePathLoss
+                                << " pathLossNlos: " << pathLossNlos);
+
+  return pathLossNlos;
+}
+
+double
+NYUInFPropagationLossModel::GetShadowingStd (ChannelCondition::LosConditionValue cond) const
+{
+  NS_LOG_FUNCTION (this);
+  double shadowingStd;
+  if (cond == ChannelCondition::LosConditionValue::LOS)
+    {
+      shadowingStd = GetCalibratedParameter (3.0, 3.0, m_frequency);
+    }
+  else if (cond == ChannelCondition::LosConditionValue::NLOS)
+    {
+      shadowingStd = GetCalibratedParameter (7.0, 7.0, m_frequency);
+    }
+  else
+    {
+      NS_FATAL_ERROR ("Unknown channel condition");
+    }
+
+  NS_LOG_DEBUG ("shadowingStd " << shadowingStd);
+  return shadowingStd;
+}
+
+double
+NYUInFPropagationLossModel::GetShadowingCorrelationDistance (
+    ChannelCondition::LosConditionValue cond) const
+{
+  NS_LOG_FUNCTION (this);
+  double correlationDistance;
+
+  // See 3GPP TR 38.901, Table 7.5-6
+  if (cond == ChannelCondition::LosConditionValue::LOS)
+    {
+      correlationDistance = 10;
+    }
+  else if (cond == ChannelCondition::LosConditionValue::NLOS)
+    {
+      correlationDistance = 10;
     }
   else
     {

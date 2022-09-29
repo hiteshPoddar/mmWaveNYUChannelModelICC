@@ -904,6 +904,169 @@ private:
   virtual double ComputePlos (Ptr<const MobilityModel> a, Ptr<const MobilityModel> b) const override;
 };
 
+/**
+ * \ingroup propagation
+ *
+ * \brief Computes the channel condition for the UMa Scenario
+ *
+ * Computes the channel condition(LOS/NLOS) for UMa in NYU Channel Model
+ * as specified in https://ieeexplore.ieee.org/stamp/stamp.jsp?arnumber=7999294&tag=1
+ * table II - NYU (sqaured) Model
+ */
+class NYUUmaChannelConditionModel : public NYUChannelConditionModel
+{
+public:
+  /**
+   * Get the type ID.
+   * \brief Get the type ID.
+   * \return the object TypeId
+   */
+  static TypeId GetTypeId (void);
+
+  /**
+   * Constructor for the NYUUmaChannelConditionModel class
+   */
+  NYUUmaChannelConditionModel ();
+
+  /**
+   * Destructor for the NYUUmaChannelConditionModel class
+   */
+  virtual ~NYUUmaChannelConditionModel () override;
+
+private:
+  /**
+   * Compute the LOS probability for 0.5-150 GHz for the UMa scenario. 
+   * 
+   * \param a tx mobility model
+   * \param b rx mobility model
+   * \return the LOS probability
+   */
+  virtual double ComputePlos (Ptr<const MobilityModel> a,
+                              Ptr<const MobilityModel> b) const override;
+};
+
+/**
+ * \ingroup propagation
+ *
+ * \brief Computes the channel condition for the RMa Scenario
+ *
+ * Computes the channel condition following the specifications for the RMa
+ * scenario reported in Table 7.4.2-1 of 3GPP TR 38.901
+ */
+class NYURmaChannelConditionModel : public NYUChannelConditionModel
+{
+public:
+  /**
+   * Get the type ID.
+   * \brief Get the type ID.
+   * \return the object TypeId
+   */
+  static TypeId GetTypeId (void);
+
+  /**
+   * Constructor for the NYURmaChannelConditionModel class
+   */
+  NYURmaChannelConditionModel ();
+
+  /**
+   * Destructor for the NYURmaChannelConditionModel class
+   */
+  virtual ~NYURmaChannelConditionModel () override;
+
+private:
+  /**
+   * Compute the LOS probability for 0.5-150 GHz for the RMa scenario. 
+   * 
+   * \param a tx mobility model
+   * \param b rx mobility model
+   * \return the LOS probability
+   */
+  virtual double ComputePlos (Ptr<const MobilityModel> a,
+                              Ptr<const MobilityModel> b) const override;
+};
+
+/**
+ * \ingroup propagation
+ *
+ * \brief Computes the channel condition for the InH Scenario
+ *
+ * Computes the channel condition(LOS/NLOS) for InH in NYU Channel Model
+ * as specified in https://ieeexplore.ieee.org/stamp/stamp.jsp?arnumber=7999294 (table III, row 2)
+ */
+class NYUInHChannelConditionModel : public NYUChannelConditionModel
+{
+public:
+  /**
+   * Get the type ID.
+   * \brief Get the type ID.
+   * \return the object TypeId
+   */
+  static TypeId GetTypeId (void);
+
+  /**
+   * Constructor for the NYUInHChannelConditionModel class
+   */
+  NYUInHChannelConditionModel ();
+
+  /**
+   * Destructor for the NYUInHChannelConditionModel class
+   */
+  virtual ~NYUInHChannelConditionModel () override;
+
+private:
+  /**
+   * Compute the LOS probability for 0.5-150 GHz for the InH scenario. 
+   * 
+   * \param a tx mobility model
+   * \param b rx mobility model
+   * \return the LOS probability
+   */
+  virtual double ComputePlos (Ptr<const MobilityModel> a,
+                              Ptr<const MobilityModel> b) const override;
+};
+
+/**
+ * \ingroup propagation
+ *
+ * \brief Computes the channel condition for the InF Scenario
+ *
+ * Computes the channel condition(LOS/NLOS) for InF in NYU Channel Model
+ * by generating a random value between 0 and 1. 
+ */
+class NYUInFChannelConditionModel : public NYUChannelConditionModel
+{
+public:
+  /**
+   * Get the type ID.
+   * \brief Get the type ID.
+   * \return the object TypeId
+   */
+  static TypeId GetTypeId (void);
+
+  /**
+   * Constructor for the NYUInFChannelConditionModel class
+   */
+  NYUInFChannelConditionModel ();
+
+  /**
+   * Destructor for the NYUInFChannelConditionModel class
+   */
+  virtual ~NYUInFChannelConditionModel () override;
+
+private:
+  /**
+   * Compute the LOS probability for 0.5-150 GHz for the InF scenario. 
+   * To be extended in future with the NYU LOS Probability model for above 100 GHz
+   * 
+   * \param a tx mobility model
+   * \param b rx mobility model
+   * \return the LOS probability
+   */
+  virtual double ComputePlos (Ptr<const MobilityModel> a,
+                              Ptr<const MobilityModel> b) const override;
+};
+
+
 } // end ns3 namespace
 
 #endif /* CHANNEL_CONDITION_MODEL_H */

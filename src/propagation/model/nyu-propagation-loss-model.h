@@ -94,28 +94,66 @@ public:
    */
   NYUPropagationLossModel & operator = (const NYUPropagationLossModel &) = delete;
 
-  // foliage loss 
-  void SetFoliageloss (double foli_loss);
-  double GetFoliageloss (void) const;
+  /**
+   * \brief Set the Foliage Loss of the model
+   * \param foliageLoss the Foliage loss in dB, between 0 to 10 dB per meter
+   */
+  void SetFoliageLoss (double foliageLoss);
 
-  // O2I Loss type
-  void SetO2Ilosstype(const std::string &value);
-  std::string GetO2Ilosstype (void) const;
+  /**
+   * \brief Return the Foliage Loss
+   * \return the Foliage Loss in dB
+   */
+  double GetFoliageLoss (void) const;
 
-  // Total PL for O2I depending on High Loss or Low Loss NYU O2I Model
-  double GetO2ILoss (const std::string &o2ilosstype, double frequency) const;
-  // Total PL for FoliageLoss (per_meter_foliage_loss * total_distance = db)
-  double GetTotalFoliageLoss (double distance2d) const;
+  /**
+   * \brief Set the Outdoor to Indoor (O2I) Loss Type
+   * \param o2iLossType the O2I Loss Type - High Loss or Low Loss
+   */
+  void SetO2ILossType (const std::string &o2iLossType);
 
-  // Max measurable PL by NYU Channel Sounder
-  virtual double RxPower_threshold (double txPowerDbm,
-									Ptr<MobilityModel> a,
-									Ptr<MobilityModel> b) const;  
-	
-  double calPar(double ple1, double ple2, double frequency) const;
-	
+  /**
+   * \brief Return the Outdoor to Indoor (O2I) Loss Type
+   * \return the Outdoor to Indoor (O2I) Loss Type
+   */
+  std::string GetO2ILossType (void) const;
+
+  /**
+   * \brief Find Path Loss due to Outdoor to Indoor (O2I) penetration
+   * \param o2iLossType the O2I Loss Type - High Loss or Low Loss
+   * \param frequency the central frequency of operation
+   * \return the pathloss value in dB
+   */
+  double GetO2IPathLoss (const std::string &o2ilosstype, double frequency) const;
+
+  /**
+   * \brief Find Path Loss due to Foliage Loss
+   * \param distance2d the 3d distance between Transmitter (Tx) and Receiver (Rx)
+   * \return the pathloss value in dB
+   */
+  double GetFoliagePathLoss (double distance2d) const;
+
+  /**
+   * \brief Calibrate Parameters for frequncy range 0.5 GHz - 150 GHz
+   * \param ple1 value at 28 GHz
+   * \param ple2 value at 140 GHz
+   * \param frequency the center frequency of operation
+   * \return the calibrated value at the center frequency of operation
+   */
+  double GetCalibratedParameter (double ple1, double ple2, double frequency) const;
 
 private:
+  /**
+   * If this  model uses objects of type RandomVariableStream,
+   * set the stream numbers to the integers starting with the offset
+   * 'stream'. Return the number of streams (possibly zero) that
+   * have been assigned.
+   *
+   * \param stream
+   * \return the number of stream indices assigned by this model
+   */
+  virtual int64_t DoAssignStreams (int64_t stream) override;
+
   /**
    * Computes the received power by applying the pathloss models
    *
@@ -129,17 +167,14 @@ private:
                                 Ptr<MobilityModel> b) const override;
 
   /**
-   * If this  model uses objects of type RandomVariableStream,
-   * set the stream numbers to the integers starting with the offset
-   * 'stream'. Return the number of streams (possibly zero) that
-   * have been assigned.
-   *
-   * \param stream
-   * \return the number of stream indices assigned by this model
+   * \brief Computes the pathloss between a and b
+   * \param cond the channel condition
+   * \param distance2d the 3D distance between tx and rx in meters
+   * \param hBs the height of the BS in meters
+   * \return pathloss value in dB
    */
-  virtual int64_t DoAssignStreams (int64_t stream) override;
-  
-  double GetLoss (Ptr<ChannelCondition> cond, double distance2D, double distance3D, double hUt, double hBs) const;
+  double GetLoss (Ptr<ChannelCondition> cond,double distance2d,
+                  double hBs) const;
   
   /**
    * \brief Computes the pathloss between a and b considering that the line of
@@ -150,18 +185,17 @@ private:
    * \param hBs the height of the BS in meters
    * \return pathloss value in dB
    */
-  virtual double GetLossLos (double distance2D, double distance3D, double hUt, double hBs) const = 0;
+  virtual double GetLossLos (double distance2D, double hBs) const = 0;
 
   /**
    * \brief Computes the pathloss between a and b considering that the line of
    *        sight is obstructed
-   * \param distance2D the 2D distance between tx and rx in meters
-   * \param distance3D the 3D distance between tx and rx in meters
-   * \param hUt the height of the UT in meters
+   * \param distance2d the 3D distance between tx and rx in meters
    * \param hBs the height of the BS in meters
    * \return pathloss value in dB
    */
-  virtual double GetLossNlos (double distance2D, double distance3D, double hUt, double hBs) const = 0;
+  virtual double GetLossNlos (double distance2d,
+                              double hBs) const = 0;
   
   /**
    * \brief Determines hUT and hBS. The default implementation assumes that
@@ -227,8 +261,6 @@ private:
    */
   static Vector GetVectorDifference (Ptr<MobilityModel> a, Ptr<MobilityModel> b);
 
-  double dynamic_range (double distance2D) const;
-
 protected:
   virtual void DoDispose () override; 
   
@@ -241,14 +273,13 @@ protected:
   static double Calculate2dDistance (Vector a, Vector b);
 
   Ptr<ChannelConditionModel> m_channelConditionModel; //!< pointer to the channel condition model
-  double m_frequency; 
-  double m_foliageloss;
-  std::string m_O2Ilosstype;
-  bool m_shadowingEnabled;  
-  bool m_foilagelossEnabled;
-
-  Ptr<UniformRandomVariable> m_uniformVar;
-  Ptr<NormalRandomVariable> m_normRandomVariable;
+  double m_frequency; //!< operating frequency in Hz
+  double m_foliageLoss;//!< loss due to foliage in dB/m
+  std::string m_o2iLossType;//!< o2i loss type
+  bool m_shadowingEnabled;  //!< enable/disable shadowing
+  bool m_foilageLossEnabled;//!< enable/disable foliage loss
+  Ptr<UniformRandomVariable> m_uniformVar;//!< uniform random variable
+  Ptr<NormalRandomVariable> m_normRandomVariable;//!< normal random variable
 
   /** Define a struct for the m_shadowingMap entries */
   struct ShadowingMapItem
@@ -310,7 +341,7 @@ private:
    * \param hBs the height of the BS in meters
    * \return pathloss value in dB
    */
-  virtual double GetLossLos (double distance2D, double distance3D, double hUt, double hBs) const override;
+  double GetLossLos (double distance2D, double hBs) const override;
 
   /**
    * \brief Computes the pathloss between a and b considering that the line of
@@ -321,7 +352,7 @@ private:
    * \param hBs the height of the BS in meters
    * \return pathloss value in dB
    */
-  virtual double GetLossNlos (double distance2D, double distance3D, double hUt, double hBs) const override;
+  double GetLossNlos (double distance2D, double hBs) const override;
 
   /**
    * \brief Returns the shadow fading standard deviation
@@ -339,6 +370,267 @@ private:
    */
   virtual double GetShadowingCorrelationDistance (ChannelCondition::LosConditionValue cond) const override;
   
+};
+
+/**
+ * \ingroup propagation
+ *
+ * \brief Implements the pathloss model defined in https://ieeexplore.ieee.org/stamp/stamp.jsp?arnumber=7999294
+ * (equation 2) for the UMa scenario.
+ */
+class NYUUmaPropagationLossModel : public NYUPropagationLossModel
+{
+public:
+  /**
+   * \brief Get the type ID.
+   * \return the object TypeId
+   */
+  static TypeId GetTypeId (void);
+
+  /**
+   * Constructor
+   */
+  NYUUmaPropagationLossModel ();
+
+  /**
+   * Destructor
+   */
+  virtual ~NYUUmaPropagationLossModel () override;
+
+  // Delete copy constructor and assignment operator to avoid misuse
+  NYUUmaPropagationLossModel (const NYUUmaPropagationLossModel &) = delete;
+  NYUUmaPropagationLossModel &operator= (const NYUUmaPropagationLossModel &) = delete;
+
+private:
+  /**
+   * \brief Computes the pathloss between a and b considering that the line of
+   *        sight is not obstructed
+   * \param distance2d the 3D distance between tx and rx in meters
+   * \param hBs the height of the BS in meters
+   * \return pathloss value in dB
+   */
+  double GetLossLos (double distance2d, double hBs) const override;
+
+  /**
+   * \brief Computes the pathloss between a and b considering that the line of
+   *        sight is obstructed.
+   * \param distance2d the 3D distance between tx and rx in meters
+   * \param hBs the height of the BS in meters
+   * \return pathloss value in dB
+   */
+  double GetLossNlos (double distance2d,double hBs) const override;
+
+  /**
+   * \brief Returns the shadow fading standard deviation
+   * \param a tx mobility model
+   * \param b rx mobility model
+   * \param cond the LOS/NLOS channel condition
+   * \return shadowing std in dB
+   */
+  virtual double GetShadowingStd (ChannelCondition::LosConditionValue cond) const override;
+
+  /**
+   	* \brief Returns the shadow fading correlation distance
+   	* \param cond the LOS/NLOS channel condition
+   	* \return shadowing correlation distance in meters
+   	*/
+  virtual double GetShadowingCorrelationDistance (ChannelCondition::LosConditionValue cond) const override;
+};
+
+/**
+ * \ingroup propagation
+ *
+ * \brief Implements the pathloss model defined in https://ieeexplore.ieee.org/stamp/stamp.jsp?arnumber=7999294
+ * (equation 20 and equation 21) for the RMa scenario.
+ */
+class NYURmaPropagationLossModel : public NYUPropagationLossModel
+{
+public:
+  /**
+   * \brief Get the type ID.
+   * \return the object TypeId
+   */
+  static TypeId GetTypeId (void);
+
+  /**
+   * Constructor
+   */
+  NYURmaPropagationLossModel ();
+
+  /**
+   * Destructor
+   */
+  virtual ~NYURmaPropagationLossModel () override;
+
+  // Delete copy constructor and assignment operator to avoid misuse
+  NYURmaPropagationLossModel (const NYURmaPropagationLossModel &) = delete;
+  NYURmaPropagationLossModel &operator= (const NYURmaPropagationLossModel &) = delete;
+
+private:
+  /**
+   * \brief Computes the pathloss between a and b considering that the line of
+   *        sight is not obstructed
+   * \param distance2d the 3D distance between tx and rx in meters
+   * \param hBs the height of the BS in meters
+   * \return pathloss value in dB
+   */
+  double GetLossLos (double distance2d, double hBs) const override;
+
+  /**
+   * \brief Computes the pathloss between a and b considering that the line of
+   *        sight is obstructed
+   * \param distance2d the 3D distance between tx and rx in meters
+   * \param hBs the height of the BS in meters
+   * \return pathloss value in dB
+   */
+  double GetLossNlos (double distance2d, double hBs) const override;
+
+  /**
+   * \brief Returns the shadow fading standard deviation
+   * \param a tx mobility model
+   * \param b rx mobility model
+   * \param cond the LOS/NLOS channel condition
+   * \return shadowing std in dB
+   */
+  virtual double GetShadowingStd (ChannelCondition::LosConditionValue cond) const override;
+
+  /**
+   	* \brief Returns the shadow fading correlation distance
+   	* \param cond the LOS/NLOS channel condition
+   	* \return shadowing correlation distance in meters
+   	*/
+  virtual double GetShadowingCorrelationDistance (ChannelCondition::LosConditionValue cond) const override;
+};
+
+/**
+ * \ingroup propagation
+ *
+ * \brief Implements the pathloss model defined in https://ieeexplore.ieee.org/stamp/stamp.jsp?arnumber=7999294
+ * (equation 2) for the InH scenario.
+ */
+class NYUInHPropagationLossModel : public NYUPropagationLossModel
+{
+public:
+  /**
+   * \brief Get the type ID.
+   * \return the object TypeId
+   */
+  static TypeId GetTypeId (void);
+
+  /**
+   * Constructor
+   */
+  NYUInHPropagationLossModel ();
+
+  /**
+   * Destructor
+   */
+  virtual ~NYUInHPropagationLossModel () override;
+
+  // Delete copy constructor and assignment operator to avoid misuse
+  NYUInHPropagationLossModel (const NYUInHPropagationLossModel &) = delete;
+  NYUInHPropagationLossModel &operator= (const NYUInHPropagationLossModel &) = delete;
+
+private:
+  /**
+   * \brief Computes the pathloss between a and b considering that the line of
+   *        sight is not obstructed
+   * \param distance2d the 3D distance between tx and rx in meters
+   * \param hBs the height of the BS in meters
+   * \return pathloss value in dB
+   */
+  double GetLossLos (double distance2d, double hBs) const override;
+
+  /**
+   * \brief Computes the pathloss between a and b considering that the line of
+   *        sight is obstructed
+   * \param distance2d the 3D distance between tx and rx in meters
+   * \param hBs the height of the BS in meters
+   * \return pathloss value in dB
+   */
+  double GetLossNlos (double distance2d, double hBs) const override;
+
+  /**
+   * \brief Returns the shadow fading standard deviation
+   * \param a tx mobility model
+   * \param b rx mobility model
+   * \param cond the LOS/NLOS channel condition
+   * \return shadowing std in dB
+   */
+  virtual double GetShadowingStd (ChannelCondition::LosConditionValue cond) const override;
+
+  /**
+   	* \brief Returns the shadow fading correlation distance
+   	* \param cond the LOS/NLOS channel condition
+   	* \return shadowing correlation distance in meters
+   	*/
+  virtual double GetShadowingCorrelationDistance (ChannelCondition::LosConditionValue cond) const override;
+};
+
+/**
+ * \ingroup propagation
+ *
+ * \brief Implements the pathloss model defined in https://ieeexplore.ieee.org/stamp/stamp.jsp?arnumber=7999294
+ * (equation 2) for the InF scenario.
+ */
+class NYUInFPropagationLossModel : public NYUPropagationLossModel
+{
+public:
+  /**
+   * \brief Get the type ID.
+   * \return the object TypeId
+   */
+  static TypeId GetTypeId (void);
+
+  /**
+   * Constructor
+   */
+  NYUInFPropagationLossModel ();
+
+  /**
+   * Destructor
+   */
+  virtual ~NYUInFPropagationLossModel () override;
+
+  // Delete copy constructor and assignment operator to avoid misuse
+  NYUInFPropagationLossModel (const NYUInFPropagationLossModel &) = delete;
+  NYUInFPropagationLossModel &operator= (const NYUInFPropagationLossModel &) = delete;
+
+private:
+  /**
+   * \brief Computes the pathloss between a and b considering that the line of
+   *        sight is not obstructed
+   * \param distance2d the 3D distance between tx and rx in meters
+   * \param hBs the height of the BS in meters
+   * \return pathloss value in dB
+   */
+  double GetLossLos (double distance2d, double hBs) const override;
+
+  /**
+   * \brief Computes the pathloss between a and b considering that the line of
+   *        sight is obstructed
+   * \param distance2d the 3D distance between tx and rx in meters
+   * \param hBs the height of the BS in meters
+   * \return pathloss value in dB
+   */
+  double GetLossNlos (double distance2d, double hBs) const override;
+
+  /**
+   * \brief Returns the shadow fading standard deviation
+   * \param a tx mobility model
+   * \param b rx mobility model
+   * \param cond the LOS/NLOS channel condition
+   * \return shadowing std in dB
+   */
+  virtual double GetShadowingStd (ChannelCondition::LosConditionValue cond) const override;
+
+  /**
+   	* \brief Returns the shadow fading correlation distance
+   	* \param cond the LOS/NLOS channel condition
+   	* \return shadowing correlation distance in meters
+   	*/
+  virtual double
+  GetShadowingCorrelationDistance (ChannelCondition::LosConditionValue cond) const override;
 };
 
 

@@ -86,7 +86,7 @@ public:
    * Sets the center frequency of the model
    * \param f the center frequency in Hz
    */
-  void SetFrequency (double f);
+  void SetFrequency (double freq);
 
   /**
    * Returns the center frequency
@@ -96,15 +96,15 @@ public:
 
   /**
    * Sets the RF Bandwidth of the model
-   * \param rf_bw the RF Bandwidth in Hz
+   * \param rfBandwidth the RF Bandwidth in Hz
    */
-  void SetRFBandWidth (double rf_bw);
+  void SetRfBandwidth (double rfBandwidth);
   
   /**
    * Returns the RF Bandwidth of the model
    * \return the RF Bandwidth in Hz
    */
-  double GetRFBandWidth (void) const;
+  double GetRfBandwidth (void) const;
 
   /**
    * Sets the propagation scenario
@@ -146,27 +146,28 @@ public:
   /**
    * The measurements conducted by NYU are at 28,73 and 140 GHz. For other
    * frequencies a linear intrerpolation is done.
-   * \param val1 value of a parameter at 28 GHz
-   * \param val2 value of a parameter at 140 GHz
-   * \return the value of a parameter at any frequency between 28-140 GHz
+   * \param val1 the value of a parameter at 28 GHz
+   * \param val2 the value of a parameter at 140 GHz
+   * \param frequency the centrer frequency of operation in GHz
+   * \return the value of a parameter at any frequency between 28-150 GHz
    */
-  double calpar(double val1, double val2, double frequency) const;
+  double GetCalibratedParameter (double val1, double val2, double frequency) const;
 
   /**
    * Find maximum value between two given values
-   * \param val1 first number
-   * \param val2 second number
+   * \param val1 the first number
+   * \param val2 the second number
    * \return the Maximum number between first and second number
    */
-  double GetMaxValue (double val1, double val2) const;
+  double GetMaximumValue (double val1, double val2) const;
 
   /**
    * Find minimum value among two given values
-   * \param val1 first number
-   * \param val2 second number
+   * \param val1 the first number
+   * \param val2 the second number
    * \return the Minimum number between first and second number
    */
-  double GetMinValue (double val1, double val2) const;
+  double GetMinimumValue (double val1, double val2) const;
 
   /**
    * Generate a value as per signum function
@@ -185,11 +186,11 @@ public:
 
   /**
    * Generate a random value following a discrete uniform distribution
-   * \param min lower bound of the discrete uniform distribution
-   * \param max upper bound of the discrete uniform distribution
+   * \param min the lower bound of the discrete uniform distribution
+   * \param max the upper bound of the discrete uniform distribution
    * \return a random integer value from a discrete uniform distribution
-   */  
-  int GetDUniformDist (const double min, const double max) const;
+   */
+  int GetDiscreteUniformDist (const double min, const double max) const;
 
   /**
    * Generate a random value (integer/double) following a uniform distribution
@@ -201,198 +202,224 @@ public:
 
   /**
    * Generate a random value following an exponential distribution
-   * \param lambda mean of the exponential distribution
-   * \return a random value(int/double) value from an exponential distribution
-   */  
-  double GetExpDist (double lambda) const;
+   * \param lambda the mean of the exponential distribution
+   * \return a random value from an exponential distribution
+   */
+  double GetExponentialDist (double lambda) const;
 
   /**
-   * Get the number of Time Clusters. Time clusters follow a Poisson Distribution
-   * \param lambda_c mean value of the number of time cluster 
-   * \return the number of time clusters
-   */  
-  int GetNumTC (double lambda_c) const;
+   * Get the number of Time Clusters
+   * \param maxNumberOfTimeCluster the maximum number of Time Cluster for UMi,UMa and RMa
+   * \param lambdaC mean value of the number of time cluster for InH
+   * \return the number of Time Clusters
+   */
+  int GetNumberOfTimeClusters (double maxNumberOfTimeCluster, double lambdaC) const;
 
   /**
-   * Get the number of AOA Spatial Lobes
-   * \param mu_AOA mean value of the number of AOA Spatial Lobes
-   * \return the number of AOA Spatial Lobes
-   */  
-  int GetNumAOALobes (double mu_AOA) const;
+   * Get the number of Angle of Arrival (AOA) Spatial Lobes i.e. the Rx Spatial Lobes
+   * \param muAoa the mean value of the number of Angle of Arrival (AOA) Spatial Lobes
+   * \return the number of Angle of Arrival (AOA) Spatial Lobes
+   */
+  int GetNumberOfAoaSpatialLobes (double muAoa) const;
 
   /**
-   * Get the number of AOD Spatial Lobes
-   * \param mu_AOD mean value of the number of AOD Spatial Lobes
-   * \return the number of AOD Spatial Lobes
-   */  
-  int GetNumAODLobes (double mu_AOD) const;
+   * Get the number of Angle of Departure (AOD) Spatial Lobes i.e. the Tx Spatial Lobes
+   * \param muAod the mean value of the number of Angle of Departure (AOD) Spatial Lobes
+   * \return the number of Angle of Departure (AOD) Spatial Lobes
+   */
+  int GetNumberOfAodSpatialLobes (double muAod) const;
 
   /**
-   * Get the number of Subpaths in each Time Cluster
-   * \param num_TC number of Time Clusters
+   * Get the number of Subpaths/Multipaths/rays in each Time Cluster
+   * \param numberOfTimeClusters the number of Time Clusters in UMi,UMa and RMa
+   * \param maxNumberOfSubpaths the maximum number of Subpaths in UMi,UMa and RMa
+   * \param betaS the scaling factor for InH and InF
+   * \param muS the mean of the exponential distribution for InH
+   * \param sigmaS the scale of the Pareto distribution for InF
+   * \param kS the shape of the Pareto distribution for InF
+   * \param thethaS the bound of the Pareto distribution for InF
    * \return the number of Subpaths in each Time Cluster
-   */ 
-  MatrixBasedChannelModel::DoubleVector GetNumSPinTC (int num_TC) const;
+   */
+  MatrixBasedChannelModel::DoubleVector
+  GetNumberOfSubpathsInTimeCluster (int numberOfTimeClusters, 
+                                    double maxNumberOfSubpaths, 
+                                    double betaS, 
+                                    double muS,
+                                    double sigmaS,
+                                    double kS,
+                                    double thethaS) const;
+
+   /**
+   * Get the Subpath delay in each Time Cluster (in ns)
+   * \param numberOfSubpathInTimeCluster the number of subpaths in each time cluster
+   * \param muRho the mean subpath delay in each time cluster (in ns) 
+   * \param alphaRho 
+   * \param betaRho 
+   * \return the delay of each Subpath in each Time Cluster (in ns)
+   */
+  MatrixBasedChannelModel::Double2DVector GetIntraClusterDelays (MatrixBasedChannelModel::DoubleVector numberOfSubpathInTimeCluster,
+                                                                double muRho,
+                                                                double alphaRho,
+                                                                double betaRho) const;
 
   /**
-   * Get the Subpath delay in each Time Cluster
-   * \param numSPinTC number of subpath in each time cluster
-   * \param mu_rho mean subpath delay in each time cluster (ns)
-   * \return the number of Subpaths in each Time Cluster
-   */  
-  MatrixBasedChannelModel::Double2DVector GetIntraClusterDelays(MatrixBasedChannelModel::DoubleVector numSPinTC, double mu_rho) const;
-
-  /**
-   * Get the Subpath phases in each Time Cluster
-   * \param numSPinTC number of subpath in each time cluster
+   * Get the Subpath phases of each Subapath in each Time Cluster
+   * \param numberOfSubpathInTimeCluster the number of subpath in each Time Cluster
    * \return the phases of each subpath in each Time Cluster
-   */ 
-  MatrixBasedChannelModel::Double2DVector GetSubpathPhases(MatrixBasedChannelModel::DoubleVector numSPinTC) const;
+   */
+  MatrixBasedChannelModel::Double2DVector GetSubpathPhases (MatrixBasedChannelModel::DoubleVector numberOfSubpathInTimeCluster) const;
 
   /**
-   * Get the Delay of each Time Cluster
-   * \param mu_tau mean excess delay of each time cluster
-   * \param SPdelayinTC subpath delay in each time cluster
-   * \param minVoidInterval mimumum time in ns by which two time clusters are seperated
-   * \return the delay of each Time Cluster
-   */ 
-  MatrixBasedChannelModel::DoubleVector GetClusterExcessTimeDelays(double mu_tau, 
-                                                                  MatrixBasedChannelModel::Double2DVector SPdelayinTC,
-                                                                  double minVoidInterval) const;
+   * Get the Delay of each Time Cluster (in ns)
+   * \param muTau the mean excess delay of each Time Cluster (in ns) for UMi,UMa, RMa and InH
+   * \param subpathDelayInTimeCluster the subpath delay in each Time Cluster (in ns)
+   * \param minimumVoidInterval the mimumum time in ns by which two Time Clusters are seperated (in ns)
+   * \param aplhaTau the alpha value of the gamma distribution for Time Cluster delay (in ns) for InF  
+   * \param betaTau the beta value of the gamma distribution for Time Cluster delay (in ns) for InF  
+   * \return the delay of each Time Cluster (in ns)
+   */
+  MatrixBasedChannelModel::DoubleVector GetClusterExcessTimeDelays (double muTau,
+                                                                    MatrixBasedChannelModel::Double2DVector subpathDelayInTimeCluster,
+                                                                    double minimumVoidInterval,
+                                                                    double aplhaTau,
+                                                                    double betaTau) const;
 
   /**
-   * Get the Power of each Time Cluster
-   * \param GetClusterExcessTimeDelays mean excess delay of each time cluster (in ns)
-   * \param Pr_dBm total received omnidirectional power (dBm)
-   * \param sigmaCluster shadowing in each time cluster (dB)
-   * \param tc_gamma time cluster decay constant (ns)
-   * \return the power in each time cluster
-   */ 
-  MatrixBasedChannelModel::DoubleVector GetClusterPowers(MatrixBasedChannelModel::DoubleVector GetClusterExcessTimeDelays, 
-                                                         double sigmaCluster,
-                                                         double tc_gamma) const;
+   * Get the Normalized Power of each Time Cluster (in Watts)
+   * \param getClusterExcessTimeDelays the mean excess delay of each Time Cluster (in ns)
+   * \param sigmaCluster the shadowing value in each Time Cluster (in dB)
+   * \param timeClusterGamma the Time Cluster decay constant (in ns)
+   * \return the Normalized Power in each Time Cluster (in Watts)
+   */
+  MatrixBasedChannelModel::DoubleVector GetClusterPowers (MatrixBasedChannelModel::DoubleVector getClusterExcessTimeDelays,
+                                                          double sigmaCluster, 
+                                                          double timeClusterGamma) const;
 
   /**
-   * Get the Power of each Time Cluster
-   * \param numSPinTC number of SubPaths in each Time Cluster
-   * \param TCPowers Power of the Time Clusters
-   * \param sigmaSubpath shadowing of each Subpath (dB)
-   * \param sp_gamma the decay constant of each Subpath (ns)
-   * \return the power in each time cluster
-   */ 
-  MatrixBasedChannelModel::Double2DVector GetSubPathPowers(MatrixBasedChannelModel::Double2DVector SPdelayinTC, 
-                                                           MatrixBasedChannelModel::DoubleVector TCPowers,
-                                                           double sigmaSubpath,
-                                                           double sp_gamma,
-                                                           bool los) const;
+   * Get the Normalized Power of each Subpath in a Time Cluster (in Watts)
+   * \param subpathDelayInTimeCluster number of SubPaths in each Time Cluster (in ns)
+   * \param timeClusterPowers Normalized Power of the Time Clusters (in Watts)
+   * \param sigmaSubpath shadowing of each Subpath (in dB)
+   * \param subpathGamma the decay constant of each Subpath (in ns)
+   * \param los the value holding if the channel condition is Los or Nlos
+   * \return the Normalized Power of each Subpath in a Time Cluster (in Watts)
+   */
+  MatrixBasedChannelModel::Double2DVector GetSubpathPowers (MatrixBasedChannelModel::Double2DVector subpathDelayInTimeCluster,
+                                                            MatrixBasedChannelModel::DoubleVector timeClusterPowers, 
+                                                            double sigmaSubpath,
+                                                            double subpathGamma, 
+                                                            bool los) const;
 
   /**
-   * Get the Power of each Time Cluster
-   * \param distance2D 2D distance between Tx and Rx nodes. Tx is fixed and Rx is moving
-   * \param TCExcessDelay Delay of each time cluster
-   * \param SPdelayinTC Subpath delay in each time cluster
-   * \return the absolute delay time of each subpath in a time cluster (in ns)
-   */ 
-  MatrixBasedChannelModel::Double2DVector getAbsolutePropTimes(double distance2D,
-                                                               MatrixBasedChannelModel::DoubleVector TCExcessDelay,
-                                                               MatrixBasedChannelModel::Double2DVector SPdelayinTC) const;
+   * Get the Absolute propagation time of each subpath
+   * \param distance2D the 2D distance between Tx and Rx nodes
+   * \param delayOfTimeCluster the delay of each Time Cluster (in ns)
+   * \param subpathDelayInTimeCluster the subpath delay in each Time Cluster (in ns)
+   * \return the absolute propagation time of each subpath in a Time Cluster (in ns)
+   */
+  MatrixBasedChannelModel::Double2DVector GetAbsolutePropagationTimes (double distance2D, 
+                                                                      MatrixBasedChannelModel::DoubleVector delayOfTimeCluster,
+                                                                      MatrixBasedChannelModel::Double2DVector subpathDelayInTimeCluster) const;
 
-  /**
+/**
    * Get the Mapping of each Subpath and the Azimuth and Elevation angles w.r.t to the Spatial Lobe
-   * \param numLobes Number of Spatial Lobes
-   * \param numSPinTC Number of Subpaths in each Time Cluster
-   * \param mean mean angle of the spatial lobe (in degrees)
-   * \param sigma standard deviation of the mean of the spatial lobe (in degrees)
-   * \param std_RMSLobeElevationSpread standard deviation of the elevation offset from the lobe centroid (in degrees)
-   * \param std_RMSLobeAzimuthSpread standard deviation of the azimuth offset from the lobe centroid (in degrees)
-   * \param distributionType Distribution type of SP in Spatial Lobes
-   * \return the Time Cluster ID, Subpath ID, Spatial Lobe ID, Azimuth angle of the SP, Elevation angle of the SP
-   */ 
-  MatrixBasedChannelModel::Double2DVector GetSubpathMappingandAngles(int numLobes,
-                                                                    MatrixBasedChannelModel::DoubleVector numSPinTC,
-                                                                    double mean,
-                                                                    double sigma,
-                                                                    double std_RMSLobeElevationSpread,
-                                                                    double std_RMSLobeAzimuthSpread,
-                                                                    std::string distributionType) const;
+   * \param numberOfSpatialLobes the number of Spatial Lobes
+   * \param numberOfSubpathInTimeCluster the number of subpaths in each Time Cluster
+   * \param mean the mean angle of the Spatial Lobe (in degrees)
+   * \param sigma the standard deviation of the mean of the Spatial Lobe (in degrees)
+   * \param stdRMSLobeElevationSpread the standard deviation of the elevation offset from the lobe centroid (in degrees)
+   * \param stdRMSLobeAzimuthSpread the standard deviation of the azimuth offset from the lobe centroid (in degrees)
+   * \param azimuthDistributionType the distribution of azimuth angles of Subpaths
+   * \param elevationDistributionType the distribution of elevations angles of Subpaths
+   * \return the Time Cluster ID, Subpath ID, Spatial Lobe ID, Azimuth angle of the Subpaths, Elevation angle of the Subpath
+   */
+  MatrixBasedChannelModel::Double2DVector GetSubpathMappingAndAngles (int numberOfSpatialLobes,
+                                                                      MatrixBasedChannelModel::DoubleVector numberOfSubpathInTimeCluster,
+                                                                      double mean, 
+                                                                      double sigma,
+                                                                      double stdRMSLobeElevationSpread,
+                                                                      double stdRMSLobeAzimuthSpread, 
+                                                                      std::string azimuthDistributionType, 
+                                                                      std::string elevationDistributionType) const;
   /**
-   * Get the Mapping of each Subpath and the Azimuth and Elevation angles w.r.t to the Spatial Lobe
-   * \param numSPinTC Number of Subpaths in each Time Cluster
-   * \param absoluteSPdelayinTC 
-   * \param SPPowers 
-   * \param SPPhases 
-   * \param AOD_cluster_subpath_lobe_az_elev_angles 
-   * \param AOA_cluster_subpath_lobe_az_elev_angles 
+   * Create a database for the Subpath characteristics :- Time (in ns), Phase (in degrees), Power (in Watts), AOD (in degree), ZOD (in degree), AOA (in degree) and ZOA (in degree)
+   * \param numberOfSubpathInTimeCluster the number of Subpaths in each Time Cluster
+   * \param absoluteSubpathdelayinTimeCluster the abosulute delay of each Subpath (in ns)
+   * \param subpathPower the normalized subpath power (in Watts)
+   * \param subpathPhases the subpath phases
+   * \param subpathAodZod the AOD and ZOD of the subpath
+   * \param subpathAoaZoa the AOA and ZOA of the subpath
    * \return SP Absolute Delay(in ns), Power (rel to 1mW), Phase (radians), AOD, ZOD, AOA, ZOA (all in degrees), AOD Spatial Lobe, AOA Spatial Lobe
-   */                                                                   
-  MatrixBasedChannelModel::Double2DVector GetPowerSpectrum(MatrixBasedChannelModel::DoubleVector numSPinTC,
-                                                          MatrixBasedChannelModel::Double2DVector absoluteSPdelayinTC,
-                                                          MatrixBasedChannelModel::Double2DVector SPPowers,
-                                                          MatrixBasedChannelModel::Double2DVector SPPhases,
-                                                          MatrixBasedChannelModel::Double2DVector AOD_cluster_subpath_lobe_az_elev_angles,
-                                                          MatrixBasedChannelModel::Double2DVector AOA_cluster_subpath_lobe_az_elev_angles)const;
+   */
+  MatrixBasedChannelModel::Double2DVector GetPowerSpectrum (MatrixBasedChannelModel::DoubleVector numberOfSubpathInTimeCluster,
+                                                            MatrixBasedChannelModel::Double2DVector absoluteSubpathdelayinTimeCluster,
+                                                            MatrixBasedChannelModel::Double2DVector subpathPower,
+                                                            MatrixBasedChannelModel::Double2DVector subpathPhases,
+                                                            MatrixBasedChannelModel::Double2DVector subpathAodZod,
+                                                            MatrixBasedChannelModel::Double2DVector subpathAoaZoa) const;
   
   /**
-   * For a given RF BW not all Subpaths can be distinctly resolved. Fetch the SP characteristics of the combined SubPaths
-   * \param PowerSpectrumOld SP charactersitcs - Absolute Delay(in ns), Power (rel to 1mW), Phase (radians), AOD, ZOD, AOA, ZOA (all in degrees), AOD Spatial Lobe, AOA Spatial Lobe
-   * \param RFBandwidth RF Banwidth
-   * \param los set if channel is LOS
-   * \return SP characteristics of merged Subpaths
+   * Combine generated subpaths depending on the RF Bandwidth. Wider bands have greater subpath resolution when compared to narrow bands.
+   * \param powerSpectrumOld the subpath charactersitcs - Absolute Delay(in ns), Power (rel to 1mW), Phase (radians), AOD, ZOD, AOA, ZOA (all in degrees), AOD Spatial Lobe, AOA Spatial Lobe
+   * \param rfBandwidth the RF Bandwidth of operation
+   * \param los the channel condition is either Los/Nlos
+   * \return the final number of resolvable subpaths
    */
-  MatrixBasedChannelModel::Double2DVector GetBWAdjustedtedPowerSpectrum(MatrixBasedChannelModel::Double2DVector PowerSpectrumOld, 
-                                                                        double RFBandwidth,
+  MatrixBasedChannelModel::Double2DVector GetBWAdjustedtedPowerSpectrum (MatrixBasedChannelModel::Double2DVector powerSpectrumOld,
+                                                                        double rfBandwidth, 
                                                                         bool los) const;
 
   /**
-   * Align the SP for LOS
-   * \param PowerSpectrum SP charactersitcs adjusted as per RF Bandwidth
-   * \param Scenario indicates whether we are in UMi,UMa,RMa,InH, Factory
-   * \return PowerSpectrum aligned for LOS
+   * The first subpath in LOS is aligned - this implies that AOD and AOA are aligned , ZOD and ZOA are aligned.
+   * \param powerSpectrum the subpath charactersitcs after bandwidth adjustment
+   * \param los the value indicating if channel is Los/Nlos
+   * \return the PowerSpectrum aligned for LOS
    */
-  MatrixBasedChannelModel::Double2DVector GetLosAlignedPowerSpectrum(MatrixBasedChannelModel::Double2DVector &PowerSpectrum, 
-                                                                    bool los) const;
+  MatrixBasedChannelModel::Double2DVector GetLosAlignedPowerSpectrum (MatrixBasedChannelModel::Double2DVector &powerSpectrum,
+                                                                      bool los) const;
   
   /**
    * Remove the subpaths with weak power
-   * \param PowerSpectrum SP charactersitcs adjusted as per RF Bandwidth
-   * \param pwrthreshold miminum detectable subpath power
+   * \param powerSpectrum the subpath charactersitcs adjusted as per RF Bandwidth
+   * \param pwrthreshold the miminum detectable subpath power
    * \return PowerSpectrum having only the strong subpaths
    */
-  MatrixBasedChannelModel::Double2DVector GetValidSubapths(MatrixBasedChannelModel::Double2DVector PowerSpectrum, 
-                                                          double pwrthreshold) const;
+  MatrixBasedChannelModel::Double2DVector GetValidSubapths (MatrixBasedChannelModel::Double2DVector powerSpectrum,
+                                                            double pwrthreshold) const;
 
   /**
    * Get the XPD for each ray in the final PowerSpectrum
-   * \param totalNumSP number of subpath in each time cluster
-   * \param XPD_Mean mean value of the XPD
-   * \param XPD_Sd standard deviation of the XPD
+   * \param totalNumberOfSubpaths the number of subpath in each Time Cluster
+   * \param xpdMean the mean value of the XPD
+   * \param xpdSd the standard deviation of the XPD
    * \return the XPD value of each subpath in each Time Cluster
-   */ 
-  MatrixBasedChannelModel::Double2DVector GetXPDperRay(double totalNumSP,
-                                                      double XPD_Mean,
-                                                      double XPD_Sd) const;
+   */
+  MatrixBasedChannelModel::Double2DVector GetXpdPerSubpath (double totalNumberOfSubpaths,
+                                                            double xpdMean, 
+                                                            double xpdSd) const;
   
   /**
    * Convert Power in dB scale to linear scale
-   * \param pwr_dB power in dB scale
+   * \param pwrdB the power in dB scale
    * \return the power in linear scale
-   */   
-  double Getdb2pow(double pwr_dB) const;
+   */
+  double GetDbToPow (double pwrdB) const;
 
   /**
    * Convert the Subpath AOD,ZOD,AOA,ZOA generated in degrees using the NYU Cordinate System (NYUCS) to Global Cordinate System (GCS)
    * in degrees and transform the subpath AOD,ZOD,AOA,ZOA from degrees to radians.
-   * \param PowerSpectrum used to fetch the AOD,ZOD,AOA,ZOA in degrees for each Subpath
+   * \param powerSpectrum the databse used to fetch the AOD,ZOD,AOA,ZOA in degrees for each Subpath
    * \return SP AOD,ZOD,AOA,ZOA in radians w.r.t GCS 
    */
-  MatrixBasedChannelModel::Double2DVector  NYUCStoGCS(MatrixBasedChannelModel::Double2DVector PowerSpectrum) const;
+  MatrixBasedChannelModel::Double2DVector NYUCordinateSystemToGlobalCordinateSystem (
+      MatrixBasedChannelModel::Double2DVector powerSpectrum) const;
 
   /**
    * Fetch the minimum detectable power in dB
-   * \param distance 2d distance between the TX and RX
+   * \param distance2D the 2d distance between the TX and RX
    * \return the minimum power that can be detected by the NYU Channel Sounder
    */
-  double dynamic_range (double distance2D) const;
+  double DynamicRange (double distance2D) const;
 
 private:
   
@@ -403,28 +430,26 @@ private:
   struct NYUChannelMatrix : public MatrixBasedChannelModel::ChannelMatrix
   {
     Ptr<const ChannelCondition> m_channelCondition; //!< the channel condition
-    int numTC = 0; //!< value containing the number of Time Clusters
-    int numAOALobes = 0; //!< value containing the number of AOA Spatial Lobes
-    int numAODLobes = 0; //!< value containing the number of AOD Spatial Lobes
+    int numberOfTimeClusters = 0; //!< value containing the number of Time Clusters
+    int numberOfAoaSpatialLobes = 0; //!< value containing the number of AOA Spatial Lobes
+    int numberOfAodSpatialLobes = 0; //!< value containing the number of AOD Spatial Lobes
     int totalSubpaths = 0; //!< value containing the total number of Subpaths
-
-    MatrixBasedChannelModel::DoubleVector numSPinTC; //!< value containing the number of Subpaths in each time cluster
-    MatrixBasedChannelModel::DoubleVector TCExcessDelay; //!< value containing the delay of each time cluster
-    MatrixBasedChannelModel::DoubleVector TCPowers;//!< value containing the power of each time cluster
+    MatrixBasedChannelModel::DoubleVector numberOfSubpathInTimeCluster; //!< value containing the number of Subpaths in each time cluster
+    MatrixBasedChannelModel::DoubleVector delayOfTimeCluster; //!< value containing the delay of each time cluster
+    MatrixBasedChannelModel::DoubleVector timeClusterPowers; //!< value containing the power of each time cluster
     MatrixBasedChannelModel::DoubleVector rayAodRadian; //!< the vector containing AOD angles
     MatrixBasedChannelModel::DoubleVector rayAoaRadian; //!< the vector containing AOA angles
     MatrixBasedChannelModel::DoubleVector rayZodRadian; //!< the vector containing ZOD angles
     MatrixBasedChannelModel::DoubleVector rayZoaRadian; //!< the vector containing ZOA angles
-
-    MatrixBasedChannelModel::Double2DVector SPdelayinTC; //!< value containing delay of each subpath in each time cluster
-    MatrixBasedChannelModel::Double2DVector SPPhases; //!< value containig the Subpath phases of each each SP in each time cluster
-    MatrixBasedChannelModel::Double2DVector SPPowers; //!< value containing the power of each Subpath in each time cluster
-    MatrixBasedChannelModel::Double2DVector absoluteSPdelayinTC;//!< value containing the absolute delay of each subpath in each time cluster
-    MatrixBasedChannelModel::Double2DVector AOD_cluster_subpath_lobe_az_elev_angles; //!< value containing the mapping(SP,TC,Lobe) and Subpath angles(Azimuth,Elevation) of AOD Lobe
-    MatrixBasedChannelModel::Double2DVector AOA_cluster_subpath_lobe_az_elev_angles; //!< value containing the mapping(SP,TC,Lobe) and Subpath angles(Azimuth,Elevation) of AOA Lobe
-    MatrixBasedChannelModel::Double2DVector PowerSpectrumOld;//!< value containing SP characteristics: AbsoluteDelay(in ns),Power (relative to 1mW),Phases (radians),AOD (in degrees),ZOD (in degrees),AOA (in degrees),ZOA (in degrees)
-    MatrixBasedChannelModel::Double2DVector PowerSpectrum;//!<value containg SP characteristics - Adjusted according to RF bandwidth
-    MatrixBasedChannelModel::Double2DVector XPD; //!< value containing the XPD (Cross Polarization Discriminator) in dB for each Ray
+    MatrixBasedChannelModel::Double2DVector subpathDelayInTimeCluster; //!< value containing delay of each subpath in each time cluster
+    MatrixBasedChannelModel::Double2DVector subpathPhases; //!< value containig the Subpath phases of each each SP in each time cluster
+    MatrixBasedChannelModel::Double2DVector subpathPowers; //!< value containing the power of each Subpath in each time cluster
+    MatrixBasedChannelModel::Double2DVector absoluteSubpathDelayinTimeCluster; //!< value containing the absolute delay of each subpath in each time cluster
+    MatrixBasedChannelModel::Double2DVector subpathAodZod; //!< value containing the mapping(SP,TC,Lobe) and Subpath angles(Azimuth,Elevation) of AOD Lobe
+    MatrixBasedChannelModel::Double2DVector subpathAoaZoa; //!< value containing the mapping(SP,TC,Lobe) and Subpath angles(Azimuth,Elevation) of AOA Lobe
+    MatrixBasedChannelModel::Double2DVector powerSpectrumOld; //!< value containing SP characteristics: AbsoluteDelay(in ns),Power (relative to 1mW),Phases (radians),AOD (in degrees),ZOD (in degrees),AOA (in degrees),ZOA (in degrees)
+    MatrixBasedChannelModel::Double2DVector powerSpectrum; //!<value containg SP characteristics - Adjusted according to RF bandwidth
+    MatrixBasedChannelModel::Double2DVector xpd; //!< value containing the XPD (Cross Polarization Discriminator) in dB for each Ray
   };
 
   /**
@@ -434,52 +459,48 @@ private:
   struct ParamsTable : public SimpleRefCount<ParamsTable>
   {
     /******** NYU Channel Parameters ************/
-    // Common parameters for UMi,UMa,RMa,InH and InF
-    double mu_AOD = 0;//!<Max num of AOD Spatial Lobes
-    double mu_AOA = 0;//!<Max num of AOA Spatial Lobes
-    double minVoidInterval = 0; //!<minVoidInterval Time in ns 
-    double sigmaCluster = 0;//!<Per-cluster shadowing in dB
-    double tc_gamma = 0;//!<Time cluster decay constant in ns
-    double sigmaSubpath = 0;//!<per subpath shadowing in dB
-    double sp_gamma = 0;//!<subpath decay constant in ns
-    double mean_ZOD = 0;//!<Mean zenith angle of departure (ZOD) in degrees
-    double sigma_ZOD = 0;//!<Standard deviation of the ZOD distribution in degrees
-    double std_AOD_RMSLobeAzimuthSpread = 0;//!<Standard deviation of the azimuth offset from the lobe centroid in degrees
-    double std_AOD_RMSLobeElevationSpread = 0;//!<Standard deviation of the elevation offset from the lobe centroid in degrees
-    std::string AOD_RMSLobeAzimuthSpread;//!<string specifying which distribution to use: 'Gaussian' or 'Laplacian
-    std::string AOD_RMSLobeElevationSpread;//!<string specifying which distribution to use: 'Gaussian' or 'Laplacian
-    double mean_ZOA = 0;//!<Mean zenith angle of arrival (ZOA) in degrees
-    double sigma_ZOA = 0;//!<Standard deviation of the ZOA distribution in degrees
-    double std_AOA_RMSLobeAzimuthSpread = 0;//!<Standard deviation of the azimuth offset from the lobe centroid in degrees
-    double std_AOA_RMSLobeElevationSpread = 0;//!<Standard deviation of the elevation offset from the lobe centroid
-    std::string AOA_RMSLobeAzimuthSpread;//!<A string specifying which distribution to use: 'Gaussian' or 'Laplacian
-    std::string AOA_RMSLobeElevationSpread;//!<A string specifying which distribution to use: 'Gaussian' or 'Laplacian
+    // common parameters for UMi,UMa,RMa,InH and InF
+    double muAod = 0; //!<Max num of AOD Spatial Lobes
+    double muAoa = 0; //!<Max num of AOA Spatial Lobes
+    double minimumVoidInterval = 0; //!<minVoidInterval Time in ns
+    double sigmaCluster = 0; //!<Per-cluster shadowing in dB
+    double timeClusterGamma = 0; //!<Time cluster decay constant in ns
+    double sigmaSubpath = 0; //!<per subpath shadowing in dB
+    double subpathGamma = 0; //!<subpath decay constant in ns
+    double meanZod = 0; //!<Mean zenith angle of departure (ZOD) in degrees
+    double sigmaZod = 0; //!<Standard deviation of the ZOD distribution in degrees
+    double sdOfAodRmsLobeAzimuthSpread = 0; //!<Standard deviation of the azimuth offset from the lobe centroid in degrees
+    double sdOfAodRmsLobeElevationSpread = 0; //!<Standard deviation of the elevation offset from the lobe centroid in degrees
+    std::string aodRmsLobeAzimuthSpread; //!<string specifying which distribution to use: 'Gaussian' or 'Laplacian
+    std::string aodRmsLobeElevationSpread; //!<string specifying which distribution to use: 'Gaussian' or 'Laplacian
+    double meanZoa = 0; //!<Mean zenith angle of arrival (ZOA) in degrees
+    double sigmaZoa = 0; //!<Standard deviation of the ZOA distribution in degrees
+    double sdOfAoaRmsLobeAzimuthSpread = 0; //!<Standard deviation of the azimuth offset from the lobe centroid in degrees
+    double sdOfAoaRmsLobeElevationSpread = 0; //!<Standard deviation of the elevation offset from the lobe centroid
+    std::string aoaRmsLobeAzimuthSpread; //!<A string specifying which distribution to use: 'Gaussian' or 'Laplacian
+    std::string aoaRmsLobeElevationSpread; //!<A string specifying which distribution to use: 'Gaussian' or 'Laplacian
     bool los; //!<boolean value indicating whether the channel condition is LOS or NLOS
-    double XPD_Mean = 0;//!<Mean of XPD value 
-    double XPD_Sd = 0; //!< standard deviation of XPD value
-    // common for UMi,UMa and RMa
-    double max_c = 0;//!<Max number of Time Clusters
-    double max_s = 0;//!<Max number of Subpaths
-    double mu_rho = 0;//!<Intra cluster Delay in ns
-    double mu_tau = 0;//!<Mean excess Delay in ns
-    // common for InH, InF
-    double lambda_c = 0;  //!< Mean number of time clusters 
-    double beta_s = 0;//!<Scaling factor for mean number of cluster sub-paths
-    // specific to InF
-    double k_s = 0;
-    double sigma_s = 0;
-    double thetha_s = 0;
-    double alpha_tau = 0;
-    double beta_tau = 0;
-    double alpha_rho = 0;
-    double beta_rho = 0;
-    // specific to InH
-    double mu_s = 0;//!<Mean number of cluster sub-paths
-
-
-    // to be removed
-    std::string distributionType_AOA;
-    std::string distributionType_AOD;
+    double xpdMean = 0; //!<Mean of XPD value
+    double xpdSd = 0; //!< standard deviation of XPD value
+    // common parameters for for UMi,UMa and RMa
+    double maxNumberOfTimeCluster = 0; //!<Max number of Time Clusters
+    double maxNumberOfSubpaths = 0; //!<Max number of Subpaths
+    // common parameters for for UMi,UMa,RMa and InH
+    double muTau = 0; //!<Mean excess Delay in ns
+    double muRho = 0; //!<Intra cluster Delay in ns
+    // common parameters for for InH, InF
+    double lambdaC = 0; //!< Mean number of time clusters
+    double betaS = 0; //!<Scaling factor for mean number of cluster sub-paths
+    // parameters specific to InF
+    double kS = 0;//!<the shape of the number of cluster sub-paths
+    double sigmaS = 0;//!<the scale factor for the number of cluster sub-paths
+    double thethaS = 0;//!<the bound for the number of cluster sub-paths
+    double alphaTau = 0; 
+    double betaTau = 0;
+    double alphaRho = 0; //!<the alpha value for the gamma distribution for intra cluster subpath delay (in ns)
+    double betaRho = 0; //!<the beta value for the gamma distribution for intra cluster subpath delay (in ns)
+    // parameters specific to InH
+    double muS = 0; //!<Mean number of cluster sub-paths
   };
 
   /**
@@ -491,21 +512,19 @@ private:
 
   /**
    * Compute the channel matrix between two devices
-   * \param locUT the location of the UT
    * \param channelCondition the channel condition
    * \param sAntenna the s node antenna array
    * \param uAntenna the u node antenna array
    * \param uAngle the u node angle
    * \param sAngle the s node angle
    * \param dis2D the 2D distance between tx and rx
-   * \param hBS the height of the BS
-   * \param hUT the height of the UT
    * \return the channel realization
    */
   Ptr<NYUChannelMatrix> GetNewChannel (Ptr<const ChannelCondition> channelCondition,
                                         Ptr<const PhasedArrayModel> sAntenna,
                                         Ptr<const PhasedArrayModel> uAntenna,
-                                        Angles &uAngle, Angles &sAngle,
+                                        Angles &uAngle, 
+                                        Angles &sAngle,
                                         double dis2D) const;
 
   /**
@@ -519,13 +538,12 @@ private:
   std::unordered_map<uint32_t, Ptr<NYUChannelMatrix> > m_channelMap; //!< map containing the channel realizations
   Time m_updatePeriod; //!< the channel update period
   double m_frequency; //!< the operating frequency
-  double m_rfbw; //!< the operating rf bandwidth in Hz 
+  double m_rfBandwidth; //!< the operating rf bandwidth in Hz 
   std::string m_scenario; //!< the 3GPP scenario
   Ptr<ChannelConditionModel> m_channelConditionModel; //!< the channel condition model
   Ptr<UniformRandomVariable> m_uniformRv; //!< uniform random variable
   Ptr<NormalRandomVariable> m_normalRv; //!< normal random variable
   Ptr<ExponentialRandomVariable> m_expRv;//!< exponential random variable
-
   // parameters for the blockage model
   bool m_blockage;//!< enables the blockage  
 };

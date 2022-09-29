@@ -906,5 +906,195 @@ NYUUMiChannelConditionModel::ComputePlos (Ptr<const MobilityModel> a,
   return pLos;
 }
 
+NS_OBJECT_ENSURE_REGISTERED (NYUUmaChannelConditionModel);
+
+TypeId
+NYUUmaChannelConditionModel::GetTypeId (void)
+{
+  static TypeId tid = TypeId ("ns3::NYUUmaChannelConditionModel")
+    .SetParent<NYUChannelConditionModel> ()
+    .SetGroupName ("Propagation")
+    .AddConstructor<NYUUmaChannelConditionModel> ()
+  ;
+  return tid;
+}
+
+NYUUmaChannelConditionModel::NYUUmaChannelConditionModel ()
+  : NYUChannelConditionModel ()
+{}
+ 
+NYUUmaChannelConditionModel::~NYUUmaChannelConditionModel ()
+{}
+
+double
+NYUUmaChannelConditionModel::ComputePlos (Ptr<const MobilityModel> a,
+                                          Ptr<const MobilityModel> b) const
+{
+  // https://ieeexplore.ieee.org/stamp/stamp.jsp?arnumber=7999294 (table II, row 2)
+  // compute the 2D distance between a and b
+  double distance2D = Calculate2dDistance (a->GetPosition (), b->GetPosition ());
+  
+  // retrieve h_UT, it should be smaller than 23 m
+  double h_UT = std::min (a->GetPosition ().z, b->GetPosition ().z);
+  if (h_UT > 23.0)
+  {
+    NS_LOG_WARN ("The height of the UT should be smaller than 23 m (see TR 38.901, Table 7.4.2-1)");
+  }
+
+  // NOTE: no idication is given about the UT height used to derive the
+  // LOS probability compute the LOS probability
+  
+  double pLos = 0.0;
+  if (distance2D <= 20.0)
+  {
+    pLos = 1.0;
+  }
+  else
+  {
+    // compute C'(h_UT)
+    double c = 0.0;
+    double g_2d = 0.0;
+    if (h_UT <= 13.0)
+    {
+      c = 0;
+    }
+    else
+    {
+      g_2d = (1.25e1 - 6)*pow(distance2D,3)*exp(-distance2D/150);
+      c = pow ((h_UT - 13.0) / 10.0, 1.5) * g_2d;
+    }
+    pLos = pow(((20.0 / distance2D) * (1 - exp(-distance2D/160)) + exp(-distance2D/160)) * (1 + c),2);
+  }
+  NS_LOG_DEBUG(" NYU UMa channel Probabilty LOS: "<< pLos);
+  return pLos;
+}
+
+NS_OBJECT_ENSURE_REGISTERED (NYURmaChannelConditionModel);
+
+TypeId
+NYURmaChannelConditionModel::GetTypeId (void)
+{
+  static TypeId tid = TypeId ("ns3::NYURmaChannelConditionModel")
+    .SetParent<NYUChannelConditionModel> ()
+    .SetGroupName ("Propagation")
+    .AddConstructor<NYURmaChannelConditionModel> ()
+  ;
+  return tid;
+}
+
+NYURmaChannelConditionModel::NYURmaChannelConditionModel ()
+  : NYUChannelConditionModel ()
+{}
+ 
+NYURmaChannelConditionModel::~NYURmaChannelConditionModel ()
+{}
+
+double
+NYURmaChannelConditionModel::ComputePlos (Ptr<const MobilityModel> a,
+                                          Ptr<const MobilityModel> b) const
+{
+  // NYU Channel model doesnt have a PLOS for RMa, thus using 3GPP Channel Model.
+  // compute the 2D distance between a and b
+  double distance2D = Calculate2dDistance (a->GetPosition (), b->GetPosition ());
+
+  // NOTE: no indication is given about the heights of the BS and the UT used
+  // to derive the LOS probability
+
+  // compute the LOS probability (see 3GPP TR 38.901, Sec. 7.4.2)
+  double pLos = 0.0;
+  if (distance2D <= 10.0)
+  {
+    pLos = 1.0;
+  }
+  else
+  {
+    pLos = exp (-(distance2D - 10.0) / 1000.0);
+  }
+  NS_LOG_DEBUG(" NYU RMa channel Probabilty LOS: "<< pLos);
+  return pLos;
+}
+
+NS_OBJECT_ENSURE_REGISTERED (NYUInHChannelConditionModel);
+
+TypeId
+NYUInHChannelConditionModel::GetTypeId (void)
+{
+  static TypeId tid = TypeId ("ns3::NYUInHChannelConditionModel")
+    .SetParent<NYUChannelConditionModel> ()
+    .SetGroupName ("Propagation")
+    .AddConstructor<NYUInHChannelConditionModel> ()
+  ;
+  return tid;
+}
+
+NYUInHChannelConditionModel::NYUInHChannelConditionModel ()
+  : NYUChannelConditionModel ()
+{}
+ 
+NYUInHChannelConditionModel::~NYUInHChannelConditionModel ()
+{}
+
+double
+NYUInHChannelConditionModel::ComputePlos (Ptr<const MobilityModel> a,
+                                          Ptr<const MobilityModel> b) const
+{
+  // NYU doesnt have a PLOS model for InH. Using 5GCM model for PLOS.
+  // https://ieeexplore.ieee.org/stamp/stamp.jsp?arnumber=7999294 (table III, row 2)
+  // compute the 2D distance between a and b
+  double distance2D = Calculate2dDistance (a->GetPosition (), b->GetPosition ());
+ 
+  // NOTE: no idication is given about the UT height used to derive the
+  // LOS probability compute the LOS probability
+  
+  double pLos = 0.0;
+  if (distance2D <= 1.2)
+  {
+    pLos = 1.0;
+  }
+  else if (distance2D > 1.2 && distance2D < 6.5)
+  {
+    pLos = exp(-(distance2D - 1.2)/4.7);
+  }
+  else
+  {
+    pLos = exp (-(distance2D - 6.5) / 32.6) * 0.32;
+  }
+  NS_LOG_DEBUG(" NYU InH channel Probabilty LOS: "<< pLos);
+  return pLos;
+}
+
+NS_OBJECT_ENSURE_REGISTERED (NYUInFChannelConditionModel);
+
+TypeId
+NYUInFChannelConditionModel::GetTypeId (void)
+{
+  static TypeId tid = TypeId ("ns3::NYUInFChannelConditionModel")
+    .SetParent<NYUChannelConditionModel> ()
+    .SetGroupName ("Propagation")
+    .AddConstructor<NYUInFChannelConditionModel> ()
+  ;
+  return tid;
+}
+
+NYUInFChannelConditionModel::NYUInFChannelConditionModel ()
+  : NYUChannelConditionModel ()
+{}
+ 
+NYUInFChannelConditionModel::~NYUInFChannelConditionModel ()
+{}
+
+double
+NYUInFChannelConditionModel::ComputePlos (Ptr<const MobilityModel> a,
+                                          Ptr<const MobilityModel> b) const
+{
+  // NYU Channel model doesnt have a PLOS for InF. To be extended with 3GPP or NYU model later
+
+  double pLos = 0.0;
+  
+  pLos = m_uniformVar->GetValue();
+
+  NS_LOG_DEBUG(" NYU InF channel Probabilty LOS: "<< pLos);
+  return pLos;
+}
 
 } // end namespace ns3
